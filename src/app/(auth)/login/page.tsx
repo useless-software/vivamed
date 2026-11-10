@@ -20,7 +20,7 @@ export default function LoginPage() {
 }
 
 async function LoginContent() {
-  if (await getCurrentUser()) redirect("/agenda");
+  if (await getCurrentUser()) redirect("/");
   // Primo avvio: nessun utente, si parte dalla configurazione guidata.
   if ((await db.user.count()) === 0) redirect("/setup");
   return <LoginForm />;

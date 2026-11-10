@@ -43,7 +43,7 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
 
   clearFailures(email);
   await createSession(user.id);
-  redirect("/agenda");
+  redirect("/");
 }
 
 export async function logout(): Promise<void> {
@@ -68,7 +68,7 @@ export async function setup(_prev: ActionState, formData: FormData): Promise<Act
 
   if (!userId) return { error: t.errors.setupDone };
   await createSession(userId);
-  redirect("/agenda");
+  redirect("/");
 }
 
 export async function changePassword(_prev: ActionState, formData: FormData): Promise<ActionState> {

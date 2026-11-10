@@ -17,6 +17,7 @@ import { StatusIcon } from "@/components/status-style";
 import { doctorLabel } from "@/lib/doctors";
 import { t } from "@/lib/messages";
 import { canWriteAppointment } from "@/lib/permissions";
+import { celebrate } from "@/lib/client/celebrate";
 import { moveAppointment } from "@/server/actions/appointments";
 import { AppointmentDialog, type AppointmentDraft } from "./appointment-dialog";
 import type { AgendaEvent, AgendaGroup, AgendaProps } from "./types";
@@ -192,7 +193,10 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
       return rest;
     });
     if (result.error) toast.error(result.error);
-    else toast.success(t.agenda.moved);
+    else {
+      toast.success(t.agenda.moved);
+      celebrate("small");
+    }
   }
 
   const canDrag = (event: CalendarEvent) =>

@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { DownloadIcon, FileIcon, FileImageIcon, FileTextIcon, Trash2Icon, UploadIcon } from "lucide-react";
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
+import { celebrate } from "@/lib/client/celebrate";
 import { ACCEPT_ATTRIBUTE, formatSize } from "@/lib/documents";
 import { t } from "@/lib/messages";
 import { cn } from "@/lib/utils";
@@ -56,6 +57,7 @@ export function DocumentsPanel({
         return;
       }
       toast.success(t.documents.uploaded(result.count ?? list.length));
+      celebrate();
       router.refresh();
     } catch {
       toast.error(t.errors.generic);

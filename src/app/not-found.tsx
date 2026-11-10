@@ -8,8 +8,8 @@ export default function NotFound() {
       <p className="text-sm text-muted-foreground">
         La pagina non esiste oppure non hai i permessi per vederla.
       </p>
-      <Link href="/agenda" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
-        Torna all&apos;agenda
+      <Link href="/" className="text-sm font-medium text-primary underline-offset-4 hover:underline">
+        Torna alla home
       </Link>
     </main>
   );

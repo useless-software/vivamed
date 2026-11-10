@@ -2,6 +2,7 @@
 
 import { startTransition, useActionState, type FormEvent } from "react";
 import { toast } from "sonner";
+import { celebrate } from "@/lib/client/celebrate";
 import type { ActionState } from "@/lib/validation";
 
 type FormAction = (prev: ActionState, formData: FormData) => Promise<ActionState>;
@@ -29,6 +30,8 @@ export function useFormAction(
     options.onResult?.(result);
     if (result.ok) {
       if (options.successMessage) toast.success(options.successMessage);
+      // Ogni modifica salvata merita una festa. 🎉
+      celebrate();
       options.onSuccess?.();
     }
     return result;

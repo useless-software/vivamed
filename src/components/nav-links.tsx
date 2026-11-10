@@ -2,10 +2,21 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { CalendarDaysIcon, DoorOpenIcon, UserCogIcon, UsersIcon } from "lucide-react";
+import {
+  BellRingIcon,
+  CalendarDaysIcon,
+  DoorOpenIcon,
+  HouseIcon,
+  SettingsIcon,
+  UserCogIcon,
+  UsersIcon,
+} from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const icons = {
+  home: HouseIcon,
+  reminders: BellRingIcon,
+  settings: SettingsIcon,
   agenda: CalendarDaysIcon,
   patients: UsersIcon,
   rooms: DoorOpenIcon,
@@ -20,7 +31,8 @@ export function NavLinks({ items }: { items: NavItem[] }) {
     <nav className="flex gap-1 overflow-x-auto md:flex-col">
       {items.map((item) => {
         const Icon = icons[item.icon];
-        const active = pathname === item.href || pathname.startsWith(`${item.href}/`);
+        const active =
+          item.href === "/" ? pathname === "/" : pathname === item.href || pathname.startsWith(`${item.href}/`);
         return (
           <Link
             key={item.href}
