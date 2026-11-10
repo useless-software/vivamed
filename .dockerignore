@@ -1,0 +1,14 @@
+.git
+.github
+.next
+node_modules
+src/generated
+.env
+.env.*
+!.env.example
+docs
+tests
+test-results
+playwright-report
+*.md
+vivamed.png
