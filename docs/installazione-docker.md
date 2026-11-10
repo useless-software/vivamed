@@ -71,13 +71,22 @@ Le modifiche al database vengono applicate automaticamente all'avvio.
 
 ## Backup e ripristino
 
-Tutti i dati stanno nel database. Per salvarli in un file:
+I dati stanno in due posti: il **database** (pazienti, appuntamenti, utenti…)
+e i **documenti** caricati nelle schede dei pazienti. Vanno salvati entrambi.
+
+Database:
 
 ```bash
 docker compose exec -T db pg_dump -U vivamed -d vivamed --clean --if-exists > backup-vivamed.sql
 ```
 
-Conserva il file **fuori dal server** (disco esterno, NAS…) e ricorda che
+Documenti:
+
+```bash
+docker compose exec -T app tar -czf - -C /app/uploads . > backup-documenti.tar.gz
+```
+
+Conserva i file **fuori dal server** (disco esterno, NAS…) e ricorda che
 contiene dati sanitari: va protetto. Conviene pianificare il comando ogni notte
 (cron su Linux, Utilità di pianificazione su Windows).
 
@@ -87,7 +96,11 @@ Per ripristinare un backup:
 docker compose exec -T db psql -U vivamed -d vivamed < backup-vivamed.sql
 ```
 
-> ⚠️ `docker compose down -v` cancella il volume con **tutti i dati**. Per fermare
+```bash
+docker compose exec -T app tar -xzf - -C /app/uploads < backup-documenti.tar.gz
+```
+
+> ⚠️ `docker compose down -v` cancella i volumi con **tutti i dati e i documenti**. Per fermare
 > vivamed usa `docker compose stop` oppure `docker compose down` (senza `-v`).
 
 ## Impostazioni (`.env`)
@@ -98,6 +111,7 @@ docker compose exec -T db psql -U vivamed -d vivamed < backup-vivamed.sql
 | `VIVAMED_PORT` | Porta su cui risponde vivamed | `3000` |
 | `APP_TIMEZONE` | Fuso orario dello studio | `Europe/Rome` |
 | `SESSION_HOURS` | Dopo quante ore si deve rifare il login | `12` |
+| `MAX_UPLOAD_MB` | Dimensione massima di ogni documento caricato | `20` |
 | `COOKIE_SECURE` | `true` solo se vivamed è raggiunto in **https** | `false` |
 
 Dopo ogni modifica: `docker compose up -d`.
@@ -119,3 +133,14 @@ Dopo ogni modifica: `docker compose up -d`.
   stai usando http: rimettilo a `false`.
 - **Ho cambiato `POSTGRES_PASSWORD` e non parte più** — la password viene
   impostata solo alla prima creazione del database: rimetti quella originale.
+
+## Provarlo su un servizio cloud (es. Railway)
+
+vivamed si può pubblicare anche su servizi come Railway, usando il `Dockerfile`
+e un database PostgreSQL del servizio. Ricorda però:
+
+- aggiungi un **volume montato su `/app/uploads`**, altrimenti i documenti dei
+  pazienti spariscono a ogni nuovo deploy;
+- imposta `COOKIE_SECURE=true` (questi servizi usano https);
+- l'istanza è raggiungibile da internet: usala solo con **dati di prova**, e crea
+  subito l'amministratore dopo il primo avvio.

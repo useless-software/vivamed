@@ -1,6 +1,7 @@
 import { describe, expect, it } from "vitest";
 import {
   appointmentSchema,
+  createUserSchema,
   patientSchema,
   roomSchema,
   setupSchema,
@@ -25,7 +26,10 @@ describe("paziente", () => {
       firstName: "Luca",
       lastName: "Ferrari",
       fiscalCode: null,
+      sex: null,
       birthDate: null,
+      birthPlace: null,
+      birthPlaceCode: null,
       phone: null,
       email: null,
       address: null,
@@ -33,9 +37,17 @@ describe("paziente", () => {
     });
   });
 
-  it("porta il codice fiscale in maiuscolo e ne controlla la lunghezza", () => {
-    expect(patientSchema.parse({ ...patient, fiscalCode: "frrlcu80a01h501x" }).fiscalCode).toBe("FRRLCU80A01H501X");
+  it("porta il codice fiscale in maiuscolo e ne verifica il carattere di controllo", () => {
+    expect(patientSchema.parse({ ...patient, fiscalCode: "rssmra85t10a562s" }).fiscalCode).toBe("RSSMRA85T10A562S");
+    expect(patientSchema.safeParse({ ...patient, fiscalCode: "RSSMRA85T10A562X" }).success).toBe(false);
     expect(patientSchema.safeParse({ ...patient, fiscalCode: "TROPPOCORTO" }).success).toBe(false);
+  });
+
+  it("accetta sesso e codice del luogo di nascita validi", () => {
+    const result = patientSchema.parse({ ...patient, sex: "F", birthPlace: "Roma (RM)", birthPlaceCode: "h501" });
+    expect(result).toMatchObject({ sex: "F", birthPlace: "Roma (RM)", birthPlaceCode: "H501" });
+    expect(patientSchema.safeParse({ ...patient, birthPlaceCode: "ROMA" }).success).toBe(false);
+    expect(patientSchema.safeParse({ ...patient, sex: "X" }).success).toBe(false);
   });
 
   it("salva la data di nascita a mezzanotte UTC e rifiuta date impossibili o future", () => {
@@ -63,9 +75,12 @@ describe("appuntamento", () => {
     reason: "",
   };
 
-  it("accetta un intervallo valido, con stato predefinito 'prenotato'", () => {
+  it("accetta un intervallo valido, con stato predefinito 'in sospeso' e nessun esito", () => {
     const result = appointmentSchema.parse(base);
-    expect(result.status).toBe("SCHEDULED");
+    expect(result.status).toBe("PENDING");
+    expect(result.outcome).toBeNull();
+    expect(appointmentSchema.parse({ ...base, status: "CONFIRMED", outcome: "NO_SHOW" }).outcome).toBe("NO_SHOW");
+    expect(appointmentSchema.safeParse({ ...base, status: "SCHEDULED" }).success).toBe(false);
     expect(result.reason).toBeNull();
     expect(result.endsAt.getTime() - result.startsAt.getTime()).toBe(30 * 60 * 1000);
   });
@@ -98,12 +113,23 @@ describe("utenti e sale", () => {
   it("in modifica utente la password vuota significa 'non cambiarla'", () => {
     const base = { id: "u", name: "Anna", email: "anna@studio.test", role: "DOCTOR", password: "" };
     const result = updateUserSchema.parse(base);
-    expect(result.password).toBe("");
+    expect(result.password).toBeNull();
     // Casella "attivo" non spuntata = campo assente nel form.
     expect(result.active).toBe(false);
     expect(updateUserSchema.parse({ ...base, active: "on" }).active).toBe(true);
     expect(updateUserSchema.safeParse({ ...base, password: "corta" }).success).toBe(false);
     expect(updateUserSchema.safeParse({ ...base, role: "SUPERUSER" }).success).toBe(false);
+  });
+
+  it("l'email è facoltativa solo per i medici; con l'email serve la password", () => {
+    const base = { name: "Marco Rossi", email: "", role: "DOCTOR", title: "DOTT", password: "" };
+    expect(createUserSchema.parse(base)).toMatchObject({ email: null, password: null, title: "DOTT" });
+    expect(createUserSchema.safeParse({ ...base, role: "RECEPTION" }).success).toBe(false);
+    expect(createUserSchema.safeParse({ ...base, email: "rossi@studio.test" }).success).toBe(false);
+    expect(
+      createUserSchema.safeParse({ ...base, email: "rossi@studio.test", password: "password123" }).success,
+    ).toBe(true);
+    expect(updateUserSchema.safeParse({ ...base, id: "u", role: "ADMIN" }).success).toBe(false);
   });
 
   it("il colore della sala deve essere esadecimale", () => {

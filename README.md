@@ -35,10 +35,13 @@ Con **vivamed** stiamo cambiando questo approccio:
 
 ## ✅ Cosa c'è già
 
-- 👥 **Account e ruoli:** amministratore, reception e medico, ognuno con i propri permessi. Al primo avvio una procedura guidata crea l'amministratore.
-- 🗂️ **Anagrafica pazienti:** ricerca veloce per nome, cognome, codice fiscale o telefono, con lo storico degli appuntamenti.
-- 🚪 **Sale:** gli ambulatori dello studio, ognuno con il proprio colore in agenda.
-- 📅 **Agenda appuntamenti:** vista giornaliera e settimanale, colonne per sala o per medico, spostamento col trascinamento. Due appuntamenti non possono sovrapporsi nella stessa sala o per lo stesso medico: lo garantisce il database.
+- 🏠 **Home con statistiche:** appuntamenti di oggi e domani, pazienti della settimana, conferme, promemoria da inviare e grafico mensile.
+- 👥 **Account e ruoli:** amministratore, reception e medico (con titolo: Dott., Dott.ssa, Prof.…). Un medico può esistere anche senza email: compare in agenda ma non accede a vivamed.
+- 🗂️ **Anagrafica pazienti:** ricerca per nome, cognome, codice fiscale, telefono, email o luogo di nascita; ordinamenti; **calcolo del codice fiscale** con l'elenco ufficiale dei comuni ISTAT; **documenti** allegati (PDF, immagini, Office…); eliminazione completa.
+- 🚪 **Sale:** gli ambulatori dello studio, ognuno con il proprio colore e i propri medici.
+- 📅 **Agenda giornaliera:** una colonna per sala, striscia dei giorni per spostarsi al volo, trascinamento degli appuntamenti, stato **in sospeso / confermato / disdetto**, nuovo paziente creato senza lasciare la prenotazione, **stampa della giornata**. Due appuntamenti non possono sovrapporsi nella stessa sala o per lo stesso medico: lo garantisce il database.
+- 🔔 **Promemoria:** gli appuntamenti dei prossimi giorni con il messaggio pronto da copiare su WhatsApp (testo personalizzabile nelle impostazioni) e la spunta "inviato".
+- 🎉 **Animazioni e feste:** coriandoli a ogni salvataggio e colori a tema a Natale, Capodanno, Carnevale, San Valentino, Pasqua, 2 giugno e Halloween (disattivabili dalle impostazioni).
 
 ---
 
@@ -104,6 +107,10 @@ Dove trovare le cose:
 - `src/lib/permissions.ts` — chi può fare cosa
 - `src/lib/messages.ts` — tutti i testi dell'interfaccia
 - `prisma/` — schema del database e migrazioni
+- `src/data/comuni.json` — comuni ISTAT (CC BY 4.0), aggiornabili con `node scripts/update-comuni.mjs`
+
+Per vedere un tema delle feste in qualsiasi giorno aggiungi all'indirizzo `?festa=natale`
+(oppure `halloween`, `capodanno`, `carnevale`, `san-valentino`, `pasqua`, `festa-repubblica`).
 
 ---
 

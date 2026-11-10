@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { doctorLabel } from "@/lib/doctors";
 import { t } from "@/lib/messages";
 import { RoomDialog } from "./room-dialog";
 
@@ -21,15 +22,28 @@ export default function RoomsPage() {
 
 async function RoomsContent() {
   await requirePermission("rooms.manage");
-  const rooms = await db.room.findMany({
-    orderBy: [{ active: "desc" }, { name: "asc" }],
-    select: { id: true, name: true, color: true, active: true },
-  });
+  const [rooms, doctors] = await Promise.all([
+    db.room.findMany({
+      orderBy: [{ active: "desc" }, { name: "asc" }],
+      select: {
+        id: true,
+        name: true,
+        color: true,
+        active: true,
+        doctors: { orderBy: { name: "asc" }, select: { id: true, name: true, title: true } },
+      },
+    }),
+    db.user.findMany({
+      where: { role: "DOCTOR" },
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, title: true, active: true },
+    }),
+  ]);
 
   return (
     <>
       <PageHeader title={t.rooms.title} subtitle={t.rooms.subtitle}>
-        <RoomDialog />
+        <RoomDialog doctors={doctors} />
       </PageHeader>
       {rooms.length === 0 ? (
         <p className="rounded-xl border border-dashed p-8 text-center text-sm text-muted-foreground">
@@ -41,6 +55,7 @@ async function RoomsContent() {
             <TableHeader>
               <TableRow>
                 <TableHead>{t.rooms.name}</TableHead>
+                <TableHead>{t.rooms.doctors}</TableHead>
                 <TableHead>{t.users.state}</TableHead>
                 <TableHead className="w-0 text-right">{t.common.actions}</TableHead>
               </TableRow>
@@ -55,13 +70,26 @@ async function RoomsContent() {
                     />
                     {room.name}
                   </TableCell>
+                  <TableCell className="whitespace-normal">
+                    {room.doctors.length === 0 ? (
+                      <span className="text-muted-foreground">{t.rooms.anyDoctor}</span>
+                    ) : (
+                      <span className="flex flex-wrap gap-1">
+                        {room.doctors.map((doctor) => (
+                          <Badge key={doctor.id} variant="outline">
+                            {doctorLabel(doctor.title, doctor.name)}
+                          </Badge>
+                        ))}
+                      </span>
+                    )}
+                  </TableCell>
                   <TableCell>
                     <Badge variant={room.active ? "secondary" : "outline"}>
                       {room.active ? t.common.activeF : t.common.inactiveF}
                     </Badge>
                   </TableCell>
                   <TableCell className="text-right">
-                    <RoomDialog room={room} />
+                    <RoomDialog room={room} doctors={doctors} />
                   </TableCell>
                 </TableRow>
               ))}

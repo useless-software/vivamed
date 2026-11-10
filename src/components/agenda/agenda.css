@@ -39,8 +39,9 @@
   cursor: pointer;
 }
 
+/* Si vede un giorno alla volta: evidenziare "oggi" in tutta la colonna non serve. */
 .rbc-today {
-  background-color: color-mix(in oklch, var(--primary) 6%, transparent);
+  background-color: transparent;
 }
 
 .rbc-current-time-indicator {

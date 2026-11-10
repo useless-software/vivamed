@@ -12,7 +12,7 @@ import {
   statusSchema,
   type ActionState,
 } from "@/lib/validation";
-import type { AppointmentStatus } from "@/generated/prisma/client";
+import type { AppointmentOutcome, AppointmentStatus } from "@/generated/prisma/client";
 import { overlapViolation } from "@/lib/db-errors";
 import { formToObject } from "./helpers";
 
@@ -24,6 +24,7 @@ type AppointmentData = {
   endsAt: Date;
   reason: string | null;
   status: AppointmentStatus;
+  outcome: AppointmentOutcome | null;
 };
 
 /**
@@ -143,6 +144,7 @@ export async function moveAppointment(input: {
     endsAt: parsed.data.endsAt,
     reason: existing.reason,
     status: existing.status,
+    outcome: existing.outcome,
   });
 }
 
@@ -165,5 +167,6 @@ export async function setAppointmentStatus(id: string, status: string): Promise<
     endsAt: existing.endsAt,
     reason: existing.reason,
     status: parsed.data,
+    outcome: existing.outcome,
   });
 }

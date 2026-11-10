@@ -128,3 +128,230 @@
     @apply font-sans;
   }
 }
+/* Stampa: margini del foglio e niente sfondi o elementi dell'interfaccia. */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  body {
+    background: white !important;
+  }
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+}
+
+/* ===========================================================================
+   Coriandoli (colori del tema normale; i temi delle feste li ridefiniscono)
+   =========================================================================== */
+:root {
+  --confetti-1: #1d63c9;
+  --confetti-2: #60a5fa;
+  --confetti-3: #22c55e;
+  --confetti-4: #f59e0b;
+  --confetti-5: #ec4899;
+  --season-emoji: "";
+}
+
+/* ===========================================================================
+   Temi delle feste (attivati da data-season su <html>, vedi src/lib/seasons.ts).
+   Ogni colore primario ha contrasto ≥ 4,5:1 col bianco: testi e pulsanti
+   restano leggibili sullo sfondo chiaro di vivamed.
+   =========================================================================== */
+[data-season="natale"] {
+  --primary: #b91c1c;
+  --ring: #ef4444;
+  --sidebar: #27272a;
+  --sidebar-foreground: #fafafa;
+  --sidebar-accent: #3f3f46;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #3f3f46;
+  --confetti-1: #b91c1c;
+  --confetti-2: #ef4444;
+  --confetti-3: #166534;
+  --confetti-4: #eab308;
+  --confetti-5: #f4f4f5;
+  --season-emoji: "🎄";
+}
+
+[data-season="capodanno"] {
+  --primary: #a16207;
+  --ring: #eab308;
+  --sidebar: #18181b;
+  --sidebar-foreground: #fde68a;
+  --sidebar-accent: #3f3f46;
+  --sidebar-accent-foreground: #fef3c7;
+  --sidebar-border: #3f3f46;
+  --confetti-1: #eab308;
+  --confetti-2: #fde047;
+  --confetti-3: #a16207;
+  --confetti-4: #d4d4d8;
+  --confetti-5: #fef3c7;
+  --season-emoji: "🥂";
+}
+
+[data-season="halloween"] {
+  --primary: #c2410c;
+  --ring: #f97316;
+  --sidebar: #2e1065;
+  --sidebar-foreground: #fed7aa;
+  --sidebar-accent: #4c1d95;
+  --sidebar-accent-foreground: #ffedd5;
+  --sidebar-border: #4c1d95;
+  --confetti-1: #f97316;
+  --confetti-2: #c2410c;
+  --confetti-3: #6d28d9;
+  --confetti-4: #2e1065;
+  --confetti-5: #84cc16;
+  --season-emoji: "🎃";
+}
+
+[data-season="san-valentino"] {
+  --primary: #be123c;
+  --ring: #f43f5e;
+  --sidebar: #4c0519;
+  --sidebar-foreground: #ffe4e6;
+  --sidebar-accent: #881337;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #881337;
+  --confetti-1: #e11d48;
+  --confetti-2: #fb7185;
+  --confetti-3: #fda4af;
+  --confetti-4: #be123c;
+  --confetti-5: #fff1f2;
+  --season-emoji: "💘";
+}
+
+[data-season="carnevale"] {
+  --primary: #7e22ce;
+  --ring: #a855f7;
+  --sidebar: #134e4a;
+  --sidebar-foreground: #fef9c3;
+  --sidebar-accent: #115e59;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #115e59;
+  --confetti-1: #a855f7;
+  --confetti-2: #facc15;
+  --confetti-3: #22c55e;
+  --confetti-4: #ec4899;
+  --confetti-5: #06b6d4;
+  --season-emoji: "🎭";
+}
+
+[data-season="pasqua"] {
+  --primary: #15803d;
+  --ring: #4ade80;
+  --sidebar: #14532d;
+  --sidebar-foreground: #fef9c3;
+  --sidebar-accent: #166534;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #166534;
+  --confetti-1: #86efac;
+  --confetti-2: #fde68a;
+  --confetti-3: #f9a8d4;
+  --confetti-4: #a5b4fc;
+  --confetti-5: #15803d;
+  --season-emoji: "🐣";
+}
+
+[data-season="festa-repubblica"] {
+  --primary: #15803d;
+  --ring: #22c55e;
+  --sidebar: #14532d;
+  --sidebar-foreground: #ffffff;
+  --sidebar-accent: #b91c1c;
+  --sidebar-accent-foreground: #ffffff;
+  --sidebar-border: #166534;
+  --confetti-1: #15803d;
+  --confetti-2: #ffffff;
+  --confetti-3: #b91c1c;
+  --confetti-4: #22c55e;
+  --confetti-5: #ef4444;
+  --season-emoji: "🇮🇹";
+}
+
+/* I colori cambiano con dolcezza quando si attiva un tema. */
+[data-slot="button"],
+aside {
+  transition-property: background-color, color, border-color, transform, box-shadow, opacity;
+}
+
+/* Emoji della festa accanto al logo, che dondola. */
+.season-badge::after {
+  content: var(--season-emoji);
+  display: inline-block;
+  margin-left: 0.25rem;
+  font-size: 1.1rem;
+  transform-origin: 50% 90%;
+}
+
+/* ===========================================================================
+   Animazioni (solo se il sistema non chiede di ridurle)
+   =========================================================================== */
+@keyframes vm-rise {
+  from {
+    opacity: 0;
+    transform: translateY(8px);
+  }
+  to {
+    opacity: 1;
+    transform: none;
+  }
+}
+
+@keyframes vm-swing {
+  0%,
+  100% {
+    transform: rotate(-10deg);
+  }
+  50% {
+    transform: rotate(10deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .season-badge::after {
+    animation: vm-swing 2.4s ease-in-out infinite;
+  }
+
+  /* Comparsa delle pagine a ogni navigazione (vedi app/(app)/template.tsx). */
+  .page-enter {
+    animation: vm-rise 0.35s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+
+  /* Righe delle tabelle che entrano a cascata. */
+  [data-slot="table-body"] > tr {
+    animation: vm-rise 0.4s cubic-bezier(0.16, 1, 0.3, 1) both;
+  }
+  [data-slot="table-body"] > tr:nth-child(2) { animation-delay: 30ms; }
+  [data-slot="table-body"] > tr:nth-child(3) { animation-delay: 60ms; }
+  [data-slot="table-body"] > tr:nth-child(4) { animation-delay: 90ms; }
+  [data-slot="table-body"] > tr:nth-child(5) { animation-delay: 120ms; }
+  [data-slot="table-body"] > tr:nth-child(6) { animation-delay: 150ms; }
+  [data-slot="table-body"] > tr:nth-child(7) { animation-delay: 180ms; }
+  [data-slot="table-body"] > tr:nth-child(8) { animation-delay: 210ms; }
+  [data-slot="table-body"] > tr:nth-child(n + 9) { animation-delay: 240ms; }
+
+  /* Le card si sollevano appena al passaggio del mouse. */
+  [data-slot="card"] {
+    transition: box-shadow 0.25s ease, transform 0.25s ease;
+  }
+
+  /* Le voci del menu scivolano un po' a destra. */
+  aside nav a {
+    transition: background-color 0.2s ease, transform 0.2s ease;
+  }
+  aside nav a:hover {
+    transform: translateX(3px);
+  }
+
+  /* Gli appuntamenti in agenda si "sollevano" al passaggio del mouse. */
+  .rbc-event.agenda-event {
+    transition: transform 0.15s ease, box-shadow 0.15s ease, filter 0.15s ease;
+  }
+  .rbc-event.agenda-event:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px -4px rgb(0 0 0 / 0.35);
+    filter: brightness(1.05);
+  }
+}

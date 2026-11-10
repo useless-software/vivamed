@@ -15,5 +15,6 @@ export function proxy(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ["/((?!login|setup|api/health|_next/static|_next/image|logo.png).*)"],
+  // Le API controllano la sessione da sole e rispondono con un errore, non con un redirect.
+  matcher: ["/((?!login|setup|api/|_next/static|_next/image|logo.png).*)"],
 };
