@@ -1,0 +1,57 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  checks:
+    name: Lint, test e build
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_USER: vivamed
+          POSTGRES_PASSWORD: vivamed
+          POSTGRES_DB: vivamed
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U vivamed"
+          --health-interval 5s
+          --health-timeout 5s
+          --health-retries 10
+    env:
+      DATABASE_URL: postgresql://vivamed:vivamed@localhost:5432/vivamed?schema=public
+      NEXT_TELEMETRY_DISABLED: 1
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+      - run: npm run lint
+      - run: npm run typecheck
+      - run: npm run db:migrate
+      - name: Test unitari e di integrazione
+        run: npm test
+      - run: npm run build
+      - name: Test end-to-end
+        run: |
+          npx playwright install --with-deps chromium
+          npm run start &
+          npx --yes wait-on --timeout 60000 http://localhost:3000/api/health
+          npm run test:e2e
+
+  docker:
+    name: Build immagine Docker
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: docker build -t vivamed:ci .
