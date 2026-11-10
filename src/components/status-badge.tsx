@@ -4,10 +4,9 @@ import { t } from "@/lib/messages";
 type Status = keyof typeof t.status;
 
 const variants: Record<Status, "default" | "secondary" | "outline" | "destructive"> = {
-  SCHEDULED: "default",
-  COMPLETED: "secondary",
-  CANCELLED: "outline",
-  NO_SHOW: "destructive",
+  PENDING: "outline",
+  CONFIRMED: "secondary",
+  CANCELLED: "destructive",
 };
 
 export function StatusBadge({ status }: { status: Status }) {

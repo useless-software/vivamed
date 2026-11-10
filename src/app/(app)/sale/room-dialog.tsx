@@ -7,12 +7,14 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Checkbox, Field, FormError, SubmitButton } from "@/components/form";
 import { useFormAction } from "@/components/use-form-action";
+import { doctorLabel, type DoctorTitle } from "@/lib/doctors";
 import { t } from "@/lib/messages";
 import { saveRoom } from "@/server/actions/rooms";
 
-type RoomRow = { id: string; name: string; color: string; active: boolean };
+type DoctorOption = { id: string; name: string; title: DoctorTitle; active: boolean };
+type RoomRow = { id: string; name: string; color: string; active: boolean; doctors: { id: string }[] };
 
-export function RoomDialog({ room }: { room?: RoomRow }) {
+export function RoomDialog({ room, doctors }: { room?: RoomRow; doctors: DoctorOption[] }) {
   const [open, setOpen] = useState(false);
   return (
     <>
@@ -30,14 +32,17 @@ export function RoomDialog({ room }: { room?: RoomRow }) {
           <DialogHeader>
             <DialogTitle>{room ? t.rooms.edit : t.rooms.new}</DialogTitle>
           </DialogHeader>
-          {open ? <RoomForm room={room} onDone={() => setOpen(false)} /> : null}
+          {open ? <RoomForm room={room} doctors={doctors} onDone={() => setOpen(false)} /> : null}
         </DialogContent>
       </Dialog>
     </>
   );
 }
 
-function RoomForm({ room, onDone }: { room?: RoomRow; onDone: () => void }) {
+function RoomForm({ room, doctors, onDone }: { room?: RoomRow; doctors: DoctorOption[]; onDone: () => void }) {
+  const assigned = new Set(room?.doctors.map((doctor) => doctor.id));
+  // I medici disattivati compaiono solo se erano già assegnati, per poterli togliere.
+  const options = doctors.filter((doctor) => doctor.active || assigned.has(doctor.id));
   const { state, onSubmit, pending, errors } = useFormAction(saveRoom, {
     successMessage: room ? t.common.saved : t.rooms.created,
     onSuccess: onDone,
@@ -57,6 +62,25 @@ function RoomForm({ room, onDone }: { room?: RoomRow; onDone: () => void }) {
           className="h-8 w-16 cursor-pointer rounded-lg border border-input bg-background p-1"
         />
       </Field>
+      <fieldset className="flex flex-col gap-1.5">
+        <legend className="mb-1.5 text-sm font-medium">{t.rooms.doctors}</legend>
+        {options.length === 0 ? (
+          <p className="text-sm text-muted-foreground">{t.rooms.noDoctors}</p>
+        ) : (
+          <div className="grid max-h-48 gap-1.5 overflow-y-auto rounded-lg border p-2 sm:grid-cols-2">
+            {options.map((doctor) => (
+              <Checkbox
+                key={doctor.id}
+                name="doctorIds"
+                value={doctor.id}
+                label={doctorLabel(doctor.title, doctor.name)}
+                defaultChecked={assigned.has(doctor.id)}
+              />
+            ))}
+          </div>
+        )}
+        <p className="text-xs text-muted-foreground">{t.rooms.doctorsHint}</p>
+      </fieldset>
       {room ? <Checkbox name="active" label={t.rooms.activeLabel} defaultChecked={room.active} /> : null}
       <FormError message={state.error} />
       <DialogFooter>

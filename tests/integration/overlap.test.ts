@@ -77,7 +77,7 @@ describe("vincoli anti-sovrapposizione", () => {
     expect(cancelled.id).toBeTruthy();
     // ...ma riattivarlo sopra un altro appuntamento non è permesso.
     const error = await db.appointment
-      .update({ where: { id: cancelled.id }, data: { status: "SCHEDULED" } })
+      .update({ where: { id: cancelled.id }, data: { status: "PENDING" } })
       .catch((e: unknown) => e);
     expect(overlapViolation(error)).not.toBeNull();
   });

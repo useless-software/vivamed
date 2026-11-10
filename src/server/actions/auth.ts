@@ -35,7 +35,8 @@ export async function login(_prev: ActionState, formData: FormData): Promise<Act
   dummyHash ??= hashPassword("vivamed-dummy-password");
   const valid = await verifyPassword(user?.passwordHash ?? (await dummyHash), password);
 
-  if (!user || !user.active || !valid) {
+  // Un utente senza password (medico senza accesso) non può entrare.
+  if (!user || !user.active || !user.passwordHash || !valid) {
     registerFailure(email);
     return { error: t.errors.credentials };
   }
@@ -78,7 +79,7 @@ export async function changePassword(_prev: ActionState, formData: FormData): Pr
   if (!parsed.success) return invalid(parsed.error);
 
   const user = await db.user.findUnique({ where: { id: current.id } });
-  if (!user || !(await verifyPassword(user.passwordHash, parsed.data.currentPassword))) {
+  if (!user?.passwordHash || !(await verifyPassword(user.passwordHash, parsed.data.currentPassword))) {
     return { error: t.errors.wrongPassword, fieldErrors: { currentPassword: [t.errors.wrongPassword] } };
   }
 

@@ -186,7 +186,7 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
   }
 
   const canDrag = (event: CalendarEvent) =>
-    event.source.status === "SCHEDULED" && canWriteAppointment(user, event.source.doctorId);
+    event.source.status !== "CANCELLED" && canWriteAppointment(user, event.source.doctorId);
 
   return (
     <div className="flex h-[calc(100dvh-6.5rem)] min-h-[34rem] flex-col gap-3 md:h-[calc(100dvh-3rem)]">

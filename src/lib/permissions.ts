@@ -8,6 +8,10 @@ export type Permission =
   | "rooms.manage"
   | "patients.read"
   | "patients.write"
+  /** Eliminare un paziente con appuntamenti e documenti. */
+  | "patients.delete"
+  /** Impostazioni dello studio (testo promemoria, temi…). */
+  | "settings.manage"
   | "appointments.read"
   /** Gestire gli appuntamenti di qualunque medico. */
   | "appointments.writeAll"
@@ -21,6 +25,8 @@ const rolePermissions: Record<Role, ReadonlySet<Permission>> = {
     ...everyone,
     "users.manage",
     "rooms.manage",
+    "patients.delete",
+    "settings.manage",
     "appointments.writeAll",
     "appointments.writeOwn",
   ]),

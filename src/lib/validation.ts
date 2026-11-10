@@ -1,5 +1,6 @@
 // Schemi di validazione condivisi dalle Server Actions. Modulo puro.
 import { z } from "zod";
+import { isValidFiscalCode } from "@/lib/codice-fiscale";
 import { t } from "@/lib/messages";
 
 const required = (max = 200) => z.string().trim().min(1, t.errors.required).max(max);
@@ -24,7 +25,19 @@ const checkbox = z
   .transform((value) => value === "on" || value === "true");
 
 export const roleSchema = z.enum(["ADMIN", "RECEPTION", "DOCTOR"]);
-export const statusSchema = z.enum(["SCHEDULED", "COMPLETED", "CANCELLED", "NO_SHOW"]);
+export const statusSchema = z.enum(["PENDING", "CONFIRMED", "CANCELLED"]);
+export const titleSchema = z.enum(["NONE", "DOTT", "DOTT_SSA", "PROF", "PROF_SSA"]);
+/** Esito della visita: "" o assente = non indicato. */
+export const outcomeSchema = z
+  .enum(["", "COMPLETED", "NO_SHOW"])
+  .optional()
+  .transform((value) => (value ? value : null));
+
+/** Email facoltativa: "" diventa null. */
+const optionalEmail = z
+  .union([z.literal(""), email])
+  .optional()
+  .transform((value) => (value ? value : null));
 
 export const loginSchema = z.object({
   email,
@@ -38,22 +51,33 @@ export const setupSchema = z
     message: t.errors.passwordMismatch,
   });
 
-export const createUserSchema = z.object({
+const userFields = {
   name: required(120),
-  email,
+  email: optionalEmail,
   role: roleSchema,
-  password,
+  title: titleSchema.default("NONE"),
+  // Vuota = nessuna password (in modifica: non cambiarla).
+  password: z.union([z.literal(""), password]).optional().transform((value) => value || null),
+};
+
+/** Admin e reception devono poter accedere: per loro l'email è obbligatoria. */
+function requireEmailUnlessDoctor(data: { role: string; email: string | null }, ctx: z.RefinementCtx) {
+  if (data.role !== "DOCTOR" && !data.email) {
+    ctx.addIssue({ code: "custom", path: ["email"], message: t.errors.emailRequired });
+  }
+}
+
+export const createUserSchema = z.object(userFields).superRefine((data, ctx) => {
+  requireEmailUnlessDoctor(data, ctx);
+  if (data.email && !data.password) {
+    ctx.addIssue({ code: "custom", path: ["password"], message: t.errors.passwordForLogin });
+  }
 });
 
-export const updateUserSchema = z.object({
-  id: required(),
-  name: required(120),
-  email,
-  role: roleSchema,
-  active: checkbox,
-  // Vuota = non cambiare la password.
-  password: z.union([z.literal(""), password]).optional(),
-});
+// In modifica la password può mancare se l'utente ne ha già una: lo verifica la Server Action.
+export const updateUserSchema = z
+  .object({ ...userFields, id: required(), active: checkbox })
+  .superRefine(requireEmailUnlessDoctor);
 
 export const changePasswordSchema = z
   .object({ currentPassword: z.string().min(1, t.errors.required), password, passwordConfirm: z.string() })
@@ -66,6 +90,7 @@ export const roomSchema = z.object({
   name: required(80),
   color: z.string().regex(/^#[0-9a-fA-F]{6}$/, t.errors.color),
   active: checkbox,
+  doctorIds: z.array(z.string().min(1)).max(100).default([]),
 });
 
 const birthDate = z
@@ -92,9 +117,21 @@ export const patientSchema = z.object({
     .string()
     .trim()
     .toUpperCase()
-    .refine((value) => value === "" || /^[A-Z0-9]{16}$/.test(value), t.errors.fiscalCode)
+    .refine((value) => value === "" || isValidFiscalCode(value), t.errors.fiscalCode)
     .transform((value) => (value === "" ? null : value)),
+  sex: z
+    .enum(["", "M", "F"])
+    .optional()
+    .transform((value) => (value ? value : null)),
   birthDate,
+  birthPlace: optional(120),
+  birthPlaceCode: z
+    .string()
+    .trim()
+    .toUpperCase()
+    .optional()
+    .refine((value) => !value || /^[A-Z]\d{3}$/.test(value), t.errors.birthPlaceCode)
+    .transform((value) => (value ? value : null)),
   phone: optional(40),
   email: z.union([z.literal(""), email]).transform((value) => (value === "" ? null : value)),
   address: optional(200),
@@ -125,7 +162,8 @@ export const appointmentSchema = z
     startsAt: isoDate,
     endsAt: isoDate,
     reason: optional(500),
-    status: statusSchema.default("SCHEDULED"),
+    status: statusSchema.default("PENDING"),
+    outcome: outcomeSchema,
   })
   .superRefine(timeRange);
 

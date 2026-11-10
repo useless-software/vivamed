@@ -7,11 +7,20 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Checkbox, Field, FormError, NativeSelect, SubmitButton } from "@/components/form";
 import { useFormAction } from "@/components/use-form-action";
+import type { DoctorTitle } from "@/lib/doctors";
 import { t } from "@/lib/messages";
 import type { Role } from "@/lib/permissions";
 import { createUser, updateUser } from "@/server/actions/users";
 
-type UserRow = { id: string; name: string; email: string; role: Role; active: boolean };
+type UserRow = {
+  id: string;
+  name: string;
+  email: string | null;
+  role: Role;
+  title: DoctorTitle;
+  active: boolean;
+  hasPassword: boolean;
+};
 
 export function UserDialog({ user }: { user?: UserRow }) {
   const [open, setOpen] = useState(false);
@@ -44,39 +53,72 @@ function UserForm({ user, onDone }: { user?: UserRow; onDone: () => void }) {
     successMessage: user ? t.common.saved : t.users.created,
     onSuccess: onDone,
   });
+  const [role, setRole] = useState<Role>(user?.role ?? "RECEPTION");
+  const [email, setEmail] = useState(user?.email ?? "");
+  const isDoctor = role === "DOCTOR";
+  // La password serve solo se c'è l'email; in modifica, solo se manca o va cambiata.
+  const passwordRequired = email.trim() !== "" && !user?.hasPassword;
+
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       {user ? <input type="hidden" name="id" value={user.id} /> : null}
-      <Field label={t.auth.name} htmlFor="user-name" errors={errors.name}>
-        <Input id="user-name" name="name" defaultValue={user?.name} required />
-      </Field>
-      <Field label={t.auth.email} htmlFor="user-email" errors={errors.email}>
-        <Input id="user-email" name="email" type="email" defaultValue={user?.email} required />
-      </Field>
       <Field label={t.users.role} htmlFor="user-role" errors={errors.role}>
-        <NativeSelect id="user-role" name="role" defaultValue={user?.role ?? "RECEPTION"}>
-          {(Object.keys(t.roles) as Role[]).map((role) => (
-            <option key={role} value={role}>
-              {t.roles[role]}
+        <NativeSelect id="user-role" name="role" value={role} onChange={(e) => setRole(e.target.value as Role)}>
+          {(Object.keys(t.roles) as Role[]).map((value) => (
+            <option key={value} value={value}>
+              {t.roles[value]}
             </option>
           ))}
         </NativeSelect>
       </Field>
+      <div className={isDoctor ? "grid grid-cols-[8rem_1fr] gap-3" : undefined}>
+        {isDoctor ? (
+          <Field label={t.users.titleLabel} htmlFor="user-title" errors={errors.title}>
+            <NativeSelect id="user-title" name="title" defaultValue={user?.title ?? "DOTT"}>
+              {(Object.keys(t.titles) as DoctorTitle[]).map((value) => (
+                <option key={value} value={value}>
+                  {t.titles[value]}
+                </option>
+              ))}
+            </NativeSelect>
+          </Field>
+        ) : null}
+        <Field label={t.auth.name} htmlFor="user-name" errors={errors.name}>
+          <Input id="user-name" name="name" defaultValue={user?.name} required />
+        </Field>
+      </div>
       <Field
-        label={user ? t.users.newPassword : t.auth.password}
-        htmlFor="user-password"
-        errors={errors.password}
-        hint={user ? t.users.newPasswordHint : t.auth.passwordHint}
+        label={t.auth.email}
+        htmlFor="user-email"
+        errors={errors.email}
+        hint={isDoctor ? t.users.emailOptionalHint : undefined}
       >
         <Input
-          id="user-password"
-          name="password"
-          type="password"
-          autoComplete="new-password"
-          required={!user}
-          minLength={8}
+          id="user-email"
+          name="email"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required={!isDoctor}
         />
       </Field>
+      {email.trim() !== "" ? (
+        <Field
+          label={user?.hasPassword ? t.users.newPassword : t.auth.password}
+          htmlFor="user-password"
+          errors={errors.password}
+          hint={user?.hasPassword ? t.users.newPasswordHint : t.auth.passwordHint}
+        >
+          <Input
+            id="user-password"
+            name="password"
+            type="password"
+            autoComplete="new-password"
+            required={passwordRequired}
+            minLength={8}
+          />
+        </Field>
+      ) : null}
       {user ? <Checkbox name="active" label={t.users.activeLabel} defaultChecked={user.active} /> : null}
       <FormError message={state.error} />
       <DialogFooter>

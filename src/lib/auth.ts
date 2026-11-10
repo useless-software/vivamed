@@ -10,7 +10,7 @@ import { can, type Permission, type Role } from "@/lib/permissions";
 const SESSION_COOKIE = "vivamed_session";
 const SESSION_HOURS = Number(process.env.SESSION_HOURS) || 12;
 
-export type CurrentUser = { id: string; name: string; email: string; role: Role };
+export type CurrentUser = { id: string; name: string; email: string | null; role: Role };
 
 export function hashPassword(password: string): Promise<string> {
   return hash(password);

@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
+import { doctorLabel } from "@/lib/doctors";
 import { t } from "@/lib/messages";
 import { UserDialog } from "./user-dialog";
 
@@ -21,10 +22,13 @@ export default function UsersPage() {
 
 async function UsersContent() {
   const current = await requirePermission("users.manage");
-  const users = await db.user.findMany({
+  const rows = await db.user.findMany({
     orderBy: [{ active: "desc" }, { name: "asc" }],
-    select: { id: true, name: true, email: true, role: true, active: true },
+    select: { id: true, name: true, email: true, role: true, title: true, active: true, passwordHash: true },
   });
+
+  // L'hash della password non deve mai arrivare al browser: basta sapere se c'è.
+  const users = rows.map(({ passwordHash, ...user }) => ({ ...user, hasPassword: passwordHash !== null }));
 
   return (
     <>
@@ -46,12 +50,14 @@ async function UsersContent() {
             {users.map((user) => (
               <TableRow key={user.id} className={user.active ? undefined : "text-muted-foreground"}>
                 <TableCell className="font-medium">
-                  {user.name}
+                  {doctorLabel(user.title, user.name)}
                   {user.id === current.id ? (
                     <span className="ml-1 font-normal text-muted-foreground">({t.users.you})</span>
                   ) : null}
                 </TableCell>
-                <TableCell>{user.email}</TableCell>
+                <TableCell>
+                  {user.email ?? <span className="text-muted-foreground italic">{t.users.noAccess}</span>}
+                </TableCell>
                 <TableCell>{t.roles[user.role]}</TableCell>
                 <TableCell>
                   <Badge variant={user.active ? "secondary" : "outline"}>

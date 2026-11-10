@@ -13,26 +13,50 @@ enum Role {
   DOCTOR
 }
 
+/// Titolo del medico, usato ad esempio nel testo dei promemoria ("il dott. Rossi").
+enum DoctorTitle {
+  NONE
+  DOTT
+  DOTT_SSA
+  PROF
+  PROF_SSA
+}
+
+enum Sex {
+  M
+  F
+}
+
+/// Conferma dell'appuntamento da parte del paziente.
 enum AppointmentStatus {
-  SCHEDULED
-  COMPLETED
+  PENDING
+  CONFIRMED
   CANCELLED
+}
+
+/// Esito della visita, facoltativo, da segnare dopo l'appuntamento.
+enum AppointmentOutcome {
+  COMPLETED
   NO_SHOW
 }
 
 model User {
-  id           String   @id @default(cuid())
+  id           String      @id @default(cuid())
   name         String
-  email        String   @unique
-  passwordHash String
+  /// Facoltativa solo per i medici: senza email (e password) non si accede a vivamed.
+  email        String?     @unique
+  passwordHash String?
   role         Role
-  active       Boolean  @default(true)
-  createdAt    DateTime @default(now()) @db.Timestamptz(3)
-  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+  title        DoctorTitle @default(NONE)
+  active       Boolean     @default(true)
+  createdAt    DateTime    @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime    @updatedAt @db.Timestamptz(3)
 
   sessions            Session[]
-  doctorAppointments  Appointment[] @relation("AppointmentDoctor")
-  createdAppointments Appointment[] @relation("AppointmentCreatedBy")
+  documents           PatientDocument[]
+  rooms               Room[]            @relation("RoomDoctors")
+  doctorAppointments  Appointment[]     @relation("AppointmentDoctor")
+  createdAppointments Appointment[]     @relation("AppointmentCreatedBy")
 }
 
 model Session {
@@ -57,38 +81,50 @@ model Room {
   updatedAt DateTime @updatedAt @db.Timestamptz(3)
 
   appointments Appointment[]
+  /// Medici che lavorano abitualmente in questa sala (suggeriti nel form appuntamento).
+  doctors      User[]        @relation("RoomDoctors")
 }
 
 model Patient {
-  id         String    @id @default(cuid())
-  firstName  String
-  lastName   String
-  fiscalCode String?   @unique
-  birthDate  DateTime? @db.Date
-  phone      String?
-  email      String?
-  address    String?
-  notes      String?
-  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
-  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+  id             String    @id @default(cuid())
+  firstName      String
+  lastName       String
+  fiscalCode     String?   @unique
+  sex            Sex?
+  birthDate      DateTime? @db.Date
+  /// Comune (o stato estero) di nascita, come mostrato all'utente.
+  birthPlace     String?
+  /// Codice catastale del luogo di nascita (es. H501 = Roma), usato per il codice fiscale.
+  birthPlaceCode String?
+  phone          String?
+  email          String?
+  address        String?
+  notes          String?
+  createdAt      DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime  @updatedAt @db.Timestamptz(3)
 
   appointments Appointment[]
+  documents    PatientDocument[]
 
   @@index([lastName, firstName])
+  @@index([createdAt])
 }
 
 model Appointment {
-  id          String            @id @default(cuid())
-  patientId   String
-  doctorId    String
-  roomId      String
-  startsAt    DateTime          @db.Timestamptz(3)
-  endsAt      DateTime          @db.Timestamptz(3)
-  status      AppointmentStatus @default(SCHEDULED)
-  reason      String?
-  createdById String?
-  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
-  updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
+  id             String              @id @default(cuid())
+  patientId      String
+  doctorId       String
+  roomId         String
+  startsAt       DateTime            @db.Timestamptz(3)
+  endsAt         DateTime            @db.Timestamptz(3)
+  status         AppointmentStatus   @default(PENDING)
+  outcome        AppointmentOutcome?
+  reason         String?
+  /// Quando è stato inviato il promemoria al paziente (null = non ancora inviato).
+  reminderSentAt DateTime?           @db.Timestamptz(3)
+  createdById    String?
+  createdAt      DateTime            @default(now()) @db.Timestamptz(3)
+  updatedAt      DateTime            @updatedAt @db.Timestamptz(3)
 
   patient   Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
   doctor    User    @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
@@ -99,4 +135,32 @@ model Appointment {
   @@index([patientId])
   @@index([doctorId, startsAt])
   @@index([roomId, startsAt])
+  @@index([reminderSentAt])
+}
+
+/// Impostazioni dello studio (chiave/valore), modificabili dagli amministratori.
+model Setting {
+  key       String   @id
+  value     String
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+}
+
+/// Documento caricato nella scheda del paziente. Il file sta su disco (UPLOAD_DIR),
+/// qui ci sono solo i metadati.
+model PatientDocument {
+  id           String   @id @default(cuid())
+  patientId    String
+  /// Nome originale del file, mostrato all'utente.
+  fileName     String
+  mimeType     String
+  size         Int
+  /// Percorso relativo dentro UPLOAD_DIR.
+  storageKey   String   @unique
+  uploadedById String?
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+
+  patient    Patient @relation(fields: [patientId], references: [id], onDelete: Cascade)
+  uploadedBy User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
+
+  @@index([patientId, createdAt])
 }

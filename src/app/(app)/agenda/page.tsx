@@ -68,9 +68,12 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/agenda">, "searc
     db.user.findMany({
       where: { role: "DOCTOR" },
       orderBy: { name: "asc" },
-      select: { id: true, name: true, active: true },
+      select: { id: true, name: true, title: true, active: true },
     }),
-    db.room.findMany({ orderBy: { name: "asc" }, select: { id: true, name: true, color: true, active: true } }),
+    db.room.findMany({
+      orderBy: { name: "asc" },
+      select: { id: true, name: true, color: true, active: true, doctors: { select: { id: true } } },
+    }),
     patientParam
       ? db.patient.findUnique({
           where: { id: patientParam },

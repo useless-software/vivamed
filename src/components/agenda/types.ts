@@ -1,3 +1,4 @@
+import type { DoctorTitle } from "@/lib/doctors";
 import type { Role } from "@/lib/permissions";
 import type { t } from "@/lib/messages";
 
@@ -16,8 +17,15 @@ export type AgendaEvent = {
   patient: PatientRef;
 };
 
-export type DoctorOption = { id: string; name: string; active: boolean };
-export type RoomOption = { id: string; name: string; color: string; active: boolean };
+export type DoctorOption = { id: string; name: string; title: DoctorTitle; active: boolean };
+export type RoomOption = {
+  id: string;
+  name: string;
+  color: string;
+  active: boolean;
+  /** Medici assegnati alla sala: proposti per primi nel form. */
+  doctors: { id: string }[];
+};
 export type AgendaGroup = "none" | "room" | "doctor";
 
 export type AgendaProps = {
