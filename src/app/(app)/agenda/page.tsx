@@ -42,7 +42,6 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/agenda">, "searc
 
   // Un medico parte dalla propria agenda; "tutti" mostra quella dell'intero studio.
   const doctorParam = one(params.medico) ?? (user.role === "DOCTOR" ? user.id : "tutti");
-  const roomParam = one(params.sala) ?? "tutte";
   const patientParam = one(params.paziente);
 
   const [appointments, doctors, rooms, preselected] = await Promise.all([
@@ -51,7 +50,6 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/agenda">, "searc
         startsAt: { lt: to },
         endsAt: { gt: from },
         doctorId: doctorParam === "tutti" ? undefined : doctorParam,
-        roomId: roomParam === "tutte" ? undefined : roomParam,
       },
       orderBy: { startsAt: "asc" },
       select: {
@@ -101,10 +99,8 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/agenda">, "searc
       doctors={doctors}
       rooms={rooms}
       user={{ id: user.id, role: user.role }}
-      filters={{ doctor: doctorParam, room: roomParam }}
+      doctorFilter={doctorParam}
       date={dateParam && /^\d{4}-\d{2}-\d{2}$/.test(dateParam) ? dateParam : null}
-      view={one(params.vista) === "giorno" ? "day" : "week"}
-      group={one(params.colonne) === "medico" ? "doctor" : one(params.colonne) === "sala" ? "room" : "none"}
       preselectedPatient={
         preselected
           ? { id: preselected.id, label: `${preselected.lastName} ${preselected.firstName}` }

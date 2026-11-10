@@ -28,17 +28,15 @@ export type RoomOption = {
   /** Medici assegnati alla sala: proposti per primi nel form. */
   doctors: { id: string }[];
 };
-export type AgendaGroup = "none" | "room" | "doctor";
 
 export type AgendaProps = {
   events: AgendaEvent[];
   doctors: DoctorOption[];
   rooms: RoomOption[];
   user: { id: string; role: Role };
-  filters: { doctor: string; room: string };
+  /** Medico selezionato nel filtro, oppure "tutti". */
+  doctorFilter: string;
   /** Giorno richiesto nell'URL (yyyy-MM-dd) oppure null = oggi. */
   date: string | null;
-  view: "day" | "week";
-  group: AgendaGroup;
   preselectedPatient: PatientRef | null;
 };

@@ -187,7 +187,7 @@ async function Dashboard() {
         <Card className="animate-in fade-in-0 slide-in-from-bottom-4 duration-700">
           <CardHeader className="flex flex-row items-center justify-between gap-2">
             <CardTitle>{t.home.nextTitle}</CardTitle>
-            <Link href="/agenda?vista=giorno" className={buttonVariants({ variant: "outline", size: "sm" })}>
+            <Link href="/agenda" className={buttonVariants({ variant: "outline", size: "sm" })}>
               {t.home.openAgenda}
             </Link>
           </CardHeader>
