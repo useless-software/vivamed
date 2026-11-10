@@ -44,7 +44,7 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/agenda">, "searc
   const doctorParam = one(params.medico) ?? (user.role === "DOCTOR" ? user.id : "tutti");
   const patientParam = one(params.paziente);
 
-  const [appointments, doctors, rooms, preselected] = await Promise.all([
+  const [appointments, stops, doctors, rooms, preselected] = await Promise.all([
     db.appointment.findMany({
       where: {
         startsAt: { lt: to },
@@ -63,6 +63,18 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/agenda">, "searc
         roomId: true,
         patient: { select: { id: true, firstName: true, lastName: true } },
       },
+    }),
+    db.agendaStop.findMany({
+      where: {
+        startsAt: { lt: to },
+        endsAt: { gt: from },
+        // Con il filtro per medico: i suoi stop e quelli che non riguardano nessun medico.
+        ...(doctorParam === "tutti"
+          ? {}
+          : { OR: [{ doctors: { some: { id: doctorParam } } }, { doctors: { none: {} } }] }),
+      },
+      orderBy: { startsAt: "asc" },
+      select: { id: true, startsAt: true, endsAt: true, note: true, roomId: true, doctors: { select: { id: true } } },
     }),
     db.user.findMany({
       where: { role: "DOCTOR" },
@@ -96,6 +108,14 @@ async function AgendaContent({ searchParams }: Pick<PageProps<"/agenda">, "searc
   return (
     <AgendaLoader
       events={events}
+      stops={stops.map((stop) => ({
+        id: stop.id,
+        startsAt: stop.startsAt.toISOString(),
+        endsAt: stop.endsAt.toISOString(),
+        note: stop.note,
+        roomId: stop.roomId,
+        doctorIds: stop.doctors.map((doctor) => doctor.id),
+      }))}
       doctors={doctors}
       rooms={rooms}
       user={{ id: user.id, role: user.role }}

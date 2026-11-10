@@ -191,3 +191,21 @@ export type ActionState = {
 export function invalid(error: z.ZodError): ActionState {
   return { error: t.errors.invalid, fieldErrors: z.flattenError(error).fieldErrors as FieldErrors };
 }
+
+const MAX_STOP_MS = 24 * 60 * 60 * 1000;
+
+/** "Stop" in agenda: un commento che blocca la sala (e i medici indicati) per un intervallo. */
+export const stopSchema = z
+  .object({
+    note: required(300),
+    roomId: z.string().min(1, t.errors.roomInvalid),
+    startsAt: isoDate,
+    endsAt: isoDate,
+    doctorIds: z.array(z.string().min(1)).max(50).default([]),
+  })
+  .superRefine((data, ctx) => {
+    if (!(data.startsAt instanceof Date) || !(data.endsAt instanceof Date)) return;
+    const duration = data.endsAt.getTime() - data.startsAt.getTime();
+    if (duration <= 0) ctx.addIssue({ code: "custom", path: ["endsAt"], message: t.errors.timeOrder });
+    else if (duration > MAX_STOP_MS) ctx.addIssue({ code: "custom", path: ["endsAt"], message: t.errors.stopTooLong });
+  });

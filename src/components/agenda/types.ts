@@ -19,6 +19,16 @@ export type AgendaEvent = {
   patient: PatientRef;
 };
 
+/** Stop in agenda (solo commento, blocca sala e medici), date in ISO. */
+export type AgendaStopEvent = {
+  id: string;
+  startsAt: string;
+  endsAt: string;
+  note: string;
+  roomId: string;
+  doctorIds: string[];
+};
+
 export type DoctorOption = { id: string; name: string; title: DoctorTitle; active: boolean };
 export type RoomOption = {
   id: string;
@@ -31,6 +41,7 @@ export type RoomOption = {
 
 export type AgendaProps = {
   events: AgendaEvent[];
+  stops: AgendaStopEvent[];
   doctors: DoctorOption[];
   rooms: RoomOption[];
   user: { id: string; role: Role };

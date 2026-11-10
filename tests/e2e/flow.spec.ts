@@ -24,6 +24,23 @@ function tomorrow(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(date);
 }
 
+/**
+ * Fa comportare Chromium come Safari: cliccando un pulsante il fuoco non passa
+ * al pulsante e il campo attivo lo perde. Così i menu a tendina vengono provati
+ * anche nel caso in cui si chiudevano prima di ricevere il clic.
+ */
+async function emulateSafariFocus(page: Page) {
+  await page.addInitScript(() => {
+    window.addEventListener("mousedown", (event) => {
+      const target = event.target as HTMLElement | null;
+      if (!event.defaultPrevented && target?.closest("button")) {
+        event.preventDefault();
+        (document.activeElement as HTMLElement | null)?.blur();
+      }
+    });
+  });
+}
+
 async function login(page: Page, email: string) {
   await page.goto("/login");
   await page.locator("#email").fill(email);
@@ -122,6 +139,7 @@ test("l'amministratore crea utenti (anche un medico senza email) e sale con i lo
 });
 
 test("paziente: codice fiscale calcolato, documenti, ricerca e ordinamento", async ({ page }) => {
+  await emulateSafariFocus(page);
   await login(page, admin.email);
   await page.goto("/pazienti/nuovo");
   await page.locator("#firstName").fill("Mario");
@@ -173,6 +191,7 @@ test("paziente: codice fiscale calcolato, documenti, ricerca e ordinamento", asy
 test("la reception prenota (anche con nuovo paziente al volo) e le sovrapposizioni vengono rifiutate", async ({
   page,
 }) => {
+  await emulateSafariFocus(page);
   await login(page, reception.email);
   // La reception non vede né raggiunge le pagine di amministrazione.
   await expect(page.locator("aside").getByRole("link", { name: "Utenti" })).toHaveCount(0);
@@ -276,13 +295,67 @@ test("stampa della giornata e cambio giorno dalla striscia", async ({ page }) =>
   await expect(page).toHaveURL(new RegExp(`data=${tomorrow()}`));
   await expect(page.locator(".rbc-event")).toHaveCount(2);
 
+  // In agenda il motivo della visita si vede per intero.
+  await expect(page.locator(".rbc-event", { hasText: "Rossi Mario" })).toContainText("Visita di controllo");
+
   await page.goto(`/agenda/stampa?data=${tomorrow()}`);
-  const rows = page.locator("tbody tr");
-  await expect(rows).toHaveCount(2);
-  await expect(rows.first()).toContainText("10:00–10:30");
-  await expect(rows.first()).toContainText("30 min");
-  await expect(rows.first()).toContainText("Rossi Mario");
-  await expect(rows.first()).toContainText(doctor.label);
+  const entries = page.locator("tbody");
+  await expect(entries).toHaveCount(2);
+  await expect(entries.first()).toContainText("10:00–10:30");
+  await expect(entries.first()).toContainText("30 min");
+  await expect(entries.first()).toContainText("Rossi Mario");
+  await expect(entries.first()).toContainText(doctor.label);
+  // Il motivo della visita, in un riquadro a parte.
+  await expect(entries.first()).toContainText("Motivo della visita");
+  await expect(entries.first()).toContainText("Visita di controllo");
+});
+
+test("stop: blocca sala e medici, si vede a strisce e compare nella stampa", async ({ page }) => {
+  await login(page, reception.email);
+  await openAgenda(page, tomorrow());
+
+  // Non si può mettere uno stop sopra una visita già prenotata.
+  await page.getByRole("button", { name: "Crea stop" }).click();
+  await page.locator("#stop-note").fill("Pausa pranzo");
+  await page.locator("#stop-room").selectOption({ label: "Ambulatorio 1" });
+  // I medici della sala sono già selezionati.
+  await expect(dialog(page).getByLabel(doctor.label)).toBeChecked();
+  await page.locator("#stop-date").fill(tomorrow());
+  await page.locator("#stop-start").fill("10:15");
+  await page.locator("#stop-end").fill("11:00");
+  await submit(page).click();
+  await expect(dialog(page).getByRole("alert")).toContainText("c'è già 1 appuntamento");
+
+  await page.locator("#stop-start").fill("13:00");
+  await page.locator("#stop-end").fill("14:00");
+  await submit(page).click();
+  const stop = page.locator(".rbc-event.agenda-stop");
+  await expect(stop).toBeVisible();
+  await expect(stop).toContainText("Pausa pranzo");
+  await expect(stop).toContainText(doctor.label);
+
+  // Sopra uno stop non si prenota: né nella sua sala, né con i suoi medici altrove.
+  await page.getByRole("button", { name: "Nuovo appuntamento" }).click();
+  await pickPatient(page, "rossi", "Rossi Mario");
+  await page.locator("#appointment-room").selectOption({ label: "Ambulatorio 2" });
+  await page.locator("#appointment-doctor").selectOption({ label: doctor.label });
+  await page.locator("#appointment-date").fill(tomorrow());
+  await page.locator("#appointment-start").fill("13:30");
+  await page.locator("#appointment-end").fill("14:00");
+  await submit(page).click();
+  await expect(dialog(page).getByRole("alert")).toHaveText("In questo orario c'è uno stop: «Pausa pranzo».");
+  await page.keyboard.press("Escape");
+
+  await page.goto(`/agenda/stampa?data=${tomorrow()}`);
+  await expect(page.locator("tbody").last()).toContainText("STOP");
+  await expect(page.locator("tbody").last()).toContainText("Pausa pranzo");
+
+  // Lo stop si modifica e si elimina dal suo popup.
+  await openAgenda(page, tomorrow());
+  await page.locator(".rbc-event.agenda-stop").click();
+  page.once("dialog", (confirm) => void confirm.accept());
+  await dialog(page).getByRole("button", { name: "Elimina stop" }).click();
+  await expect(page.locator(".rbc-event.agenda-stop")).toHaveCount(0);
 });
 
 test("impostazioni: testo del promemoria personalizzato", async ({ page }) => {

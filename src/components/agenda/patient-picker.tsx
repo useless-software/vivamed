@@ -91,7 +91,13 @@ export function PatientPicker({
         aria-expanded={open}
       />
       {open ? (
-        <div className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border bg-popover text-sm shadow-md animate-in fade-in-0 slide-in-from-top-1">
+        <div
+          // Il clic nell'elenco non deve togliere il fuoco al campo di ricerca: Safari
+          // (e Firefox su Mac) non danno il fuoco ai pulsanti, quindi l'elenco si
+          // chiuderebbe per il "blur" prima che il clic arrivi al pulsante.
+          onMouseDown={(event) => event.preventDefault()}
+          className="absolute z-20 mt-1 w-full overflow-hidden rounded-lg border bg-popover text-sm shadow-md animate-in fade-in-0 slide-in-from-top-1"
+        >
           {onCreateNew ? (
             <button
               type="button"

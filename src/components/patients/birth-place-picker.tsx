@@ -86,7 +86,11 @@ export function BirthPlacePicker({
         />
       )}
       {!value && results ? (
-        <ul className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md">
+        <ul
+          // Come nel selettore paziente: il clic non toglie il fuoco al campo.
+          onMouseDown={(event) => event.preventDefault()}
+          className="absolute z-20 mt-1 max-h-56 w-full overflow-auto rounded-lg border bg-popover p-1 text-sm shadow-md"
+        >
           {CODE.test(typedCode) ? (
             <li>
               <button
