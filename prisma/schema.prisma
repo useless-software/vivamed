@@ -1,0 +1,102 @@
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  RECEPTION
+  DOCTOR
+}
+
+enum AppointmentStatus {
+  SCHEDULED
+  COMPLETED
+  CANCELLED
+  NO_SHOW
+}
+
+model User {
+  id           String   @id @default(cuid())
+  name         String
+  email        String   @unique
+  passwordHash String
+  role         Role
+  active       Boolean  @default(true)
+  createdAt    DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt    DateTime @updatedAt @db.Timestamptz(3)
+
+  sessions            Session[]
+  doctorAppointments  Appointment[] @relation("AppointmentDoctor")
+  createdAppointments Appointment[] @relation("AppointmentCreatedBy")
+}
+
+model Session {
+  id        String   @id @default(cuid())
+  /// SHA-256 del token salvato nel cookie: il token in chiaro non viene mai memorizzato.
+  tokenHash String   @unique
+  userId    String
+  expiresAt DateTime @db.Timestamptz(3)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+}
+
+model Room {
+  id        String   @id @default(cuid())
+  name      String   @unique
+  color     String   @default("#3b82f6")
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt DateTime @updatedAt @db.Timestamptz(3)
+
+  appointments Appointment[]
+}
+
+model Patient {
+  id         String    @id @default(cuid())
+  firstName  String
+  lastName   String
+  fiscalCode String?   @unique
+  birthDate  DateTime? @db.Date
+  phone      String?
+  email      String?
+  address    String?
+  notes      String?
+  createdAt  DateTime  @default(now()) @db.Timestamptz(3)
+  updatedAt  DateTime  @updatedAt @db.Timestamptz(3)
+
+  appointments Appointment[]
+
+  @@index([lastName, firstName])
+}
+
+model Appointment {
+  id          String            @id @default(cuid())
+  patientId   String
+  doctorId    String
+  roomId      String
+  startsAt    DateTime          @db.Timestamptz(3)
+  endsAt      DateTime          @db.Timestamptz(3)
+  status      AppointmentStatus @default(SCHEDULED)
+  reason      String?
+  createdById String?
+  createdAt   DateTime          @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime          @updatedAt @db.Timestamptz(3)
+
+  patient   Patient @relation(fields: [patientId], references: [id], onDelete: Restrict)
+  doctor    User    @relation("AppointmentDoctor", fields: [doctorId], references: [id], onDelete: Restrict)
+  room      Room    @relation(fields: [roomId], references: [id], onDelete: Restrict)
+  createdBy User?   @relation("AppointmentCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([startsAt])
+  @@index([patientId])
+  @@index([doctorId, startsAt])
+  @@index([roomId, startsAt])
+}
