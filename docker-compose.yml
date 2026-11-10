@@ -1,0 +1,40 @@
+# vivamed + PostgreSQL. Guida completa: docs/installazione-docker.md
+#
+#   1. copia .env.example in .env e scegli POSTGRES_PASSWORD
+#   2. docker compose up -d
+#   3. apri http://<indirizzo-del-server>:3000
+
+services:
+  app:
+    build: .
+    image: vivamed:latest
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://vivamed:${POSTGRES_PASSWORD:?Imposta POSTGRES_PASSWORD nel file .env}@db:5432/vivamed?schema=public
+      APP_TIMEZONE: ${APP_TIMEZONE:-Europe/Rome}
+      SESSION_HOURS: ${SESSION_HOURS:-12}
+      COOKIE_SECURE: ${COOKIE_SECURE:-false}
+    ports:
+      - "${VIVAMED_PORT:-3000}:3000"
+
+  db:
+    image: postgres:16-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: vivamed
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?Imposta POSTGRES_PASSWORD nel file .env}
+      POSTGRES_DB: vivamed
+    volumes:
+      # Qui vivono tutti i dati dello studio: non cancellare questo volume!
+      - vivamed-db:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U vivamed -d vivamed"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+volumes:
+  vivamed-db:

@@ -6,7 +6,7 @@
 
 **Il gestionale open source, semplice e potente per studi medici e piccole cliniche private.**
 
-[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE.md)
+[![License: AGPL v3](https://img.shields.io/badge/License-AGPL_v3-blue.svg)](LICENSE)
 [![Open Source](https://badges.frapsoft.com/os/v1/open-source.svg?v=103)](https://github.com/itzzNicholas/vivamed)
 
 ---
@@ -29,7 +29,81 @@ Con **vivamed** stiamo cambiando questo approccio:
 * 🛠️ **Potente e Completo:** Tutte le funzionalità essenziali e avanzate incluse di base, senza costi nascosti.
 * 🔓 **Trasparente e Personalizzabile:** Il codice è 100% pubblico. Se hai esigenze particolari, puoi estenderlo o sviluppare le tue integrazioni su misura.
 
-> ⚠️ **Nota sulla Licenza:** Il progetto è rilasciato sotto licenza open source. Ti chiediamo di consultare e rispettare i termini specificati nel file [`LICENSE.md`](LICENSE.md).
+> ⚠️ **Nota sulla Licenza:** Il progetto è rilasciato sotto licenza open source. Ti chiediamo di consultare e rispettare i termini specificati nel file [`LICENSE`](LICENSE).
+
+---
+
+## ✅ Cosa c'è già
+
+- 👥 **Account e ruoli:** amministratore, reception e medico, ognuno con i propri permessi. Al primo avvio una procedura guidata crea l'amministratore.
+- 🗂️ **Anagrafica pazienti:** ricerca veloce per nome, cognome, codice fiscale o telefono, con lo storico degli appuntamenti.
+- 🚪 **Sale:** gli ambulatori dello studio, ognuno con il proprio colore in agenda.
+- 📅 **Agenda appuntamenti:** vista giornaliera e settimanale, colonne per sala o per medico, spostamento col trascinamento. Due appuntamenti non possono sovrapporsi nella stessa sala o per lo stesso medico: lo garantisce il database.
+
+---
+
+## 📦 Installazione
+
+Il modo consigliato è **Docker**:
+
+```bash
+git clone https://github.com/useless-software/vivamed.git
+```
+
+```bash
+cd vivamed
+```
+
+```bash
+cp .env.example .env
+```
+
+Scegli una password in `POSTGRES_PASSWORD` dentro `.env`, poi:
+
+```bash
+docker compose up -d
+```
+
+Apri `http://localhost:3000` e crea l'account amministratore. Fatto!
+
+- 📘 [Guida completa con Docker](docs/installazione-docker.md) — aggiornamenti, backup, impostazioni
+- 📗 [Installazione manuale senza Docker](docs/installazione-manuale.md)
+
+---
+
+## 🧑‍💻 Sviluppo
+
+vivamed è scritto in TypeScript con [Next.js](https://nextjs.org/) (App Router), [PostgreSQL](https://www.postgresql.org/) e [Prisma](https://www.prisma.io/).
+
+Servono Node.js 22+ e un PostgreSQL raggiungibile. Copia `.env.example` in `.env`, imposta `DATABASE_URL` e poi:
+
+```bash
+npm install
+```
+
+```bash
+npm run db:migrate
+```
+
+```bash
+npm run dev
+```
+
+| Comando | Cosa fa |
+|---|---|
+| `npm run lint` | Controllo dello stile del codice |
+| `npm run typecheck` | Controllo dei tipi TypeScript |
+| `npm test` | Test unitari e di integrazione (serve il database) |
+| `npm run test:e2e` | Test nel browser contro un vivamed avviato su un database vuoto |
+| `npm run build` e `npm run start` | Build e avvio di produzione |
+
+Dove trovare le cose:
+
+- `src/app` — le pagine (`(auth)` per login e primo avvio, `(app)` per il gestionale)
+- `src/server/actions` — le operazioni che modificano i dati, ognuna con il proprio controllo dei permessi
+- `src/lib/permissions.ts` — chi può fare cosa
+- `src/lib/messages.ts` — tutti i testi dell'interfaccia
+- `prisma/` — schema del database e migrazioni
 
 ---
 
