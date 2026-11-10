@@ -24,6 +24,23 @@ function tomorrow(): string {
   return new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Rome" }).format(date);
 }
 
+/**
+ * Fa comportare Chromium come Safari: cliccando un pulsante il fuoco non passa
+ * al pulsante e il campo attivo lo perde. Così i menu a tendina vengono provati
+ * anche nel caso in cui si chiudevano prima di ricevere il clic.
+ */
+async function emulateSafariFocus(page: Page) {
+  await page.addInitScript(() => {
+    window.addEventListener("mousedown", (event) => {
+      const target = event.target as HTMLElement | null;
+      if (!event.defaultPrevented && target?.closest("button")) {
+        event.preventDefault();
+        (document.activeElement as HTMLElement | null)?.blur();
+      }
+    });
+  });
+}
+
 async function login(page: Page, email: string) {
   await page.goto("/login");
   await page.locator("#email").fill(email);
@@ -122,6 +139,7 @@ test("l'amministratore crea utenti (anche un medico senza email) e sale con i lo
 });
 
 test("paziente: codice fiscale calcolato, documenti, ricerca e ordinamento", async ({ page }) => {
+  await emulateSafariFocus(page);
   await login(page, admin.email);
   await page.goto("/pazienti/nuovo");
   await page.locator("#firstName").fill("Mario");
@@ -173,6 +191,7 @@ test("paziente: codice fiscale calcolato, documenti, ricerca e ordinamento", asy
 test("la reception prenota (anche con nuovo paziente al volo) e le sovrapposizioni vengono rifiutate", async ({
   page,
 }) => {
+  await emulateSafariFocus(page);
   await login(page, reception.email);
   // La reception non vede né raggiunge le pagine di amministrazione.
   await expect(page.locator("aside").getByRole("link", { name: "Utenti" })).toHaveCount(0);
