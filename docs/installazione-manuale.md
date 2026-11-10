@@ -137,11 +137,19 @@ pg_dump "postgresql://vivamed:SCEGLI-UNA-PASSWORD@localhost:5432/vivamed" --clea
 psql "postgresql://vivamed:SCEGLI-UNA-PASSWORD@localhost:5432/vivamed" < backup-vivamed.sql
 ```
 
+Salva anche la cartella dei documenti dei pazienti (`UPLOAD_DIR`, predefinita
+`uploads` dentro la cartella di vivamed), ad esempio:
+
+```bash
+tar -czf backup-documenti.tar.gz -C /opt/vivamed/uploads .
+```
+
 Conserva i backup fuori dal server e proteggili: contengono dati sanitari.
 
 ## Impostazioni e sicurezza
 
-Le impostazioni di `.env` (`APP_TIMEZONE`, `SESSION_HOURS`, `COOKIE_SECURE`) e
+Le impostazioni di `.env` (`APP_TIMEZONE`, `SESSION_HOURS`, `COOKIE_SECURE`,
+`UPLOAD_DIR`, `MAX_UPLOAD_MB`) e
 le raccomandazioni di sicurezza sono le stesse della
 [guida Docker](installazione-docker.md#impostazioni-env). Dopo una modifica a
 `.env` basta riavviare vivamed.

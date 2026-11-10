@@ -34,7 +34,11 @@ COPY prisma ./prisma
 FROM base AS runner
 ENV NODE_ENV=production \
     HOSTNAME=0.0.0.0 \
-    PORT=3000
+    PORT=3000 \
+    UPLOAD_DIR=/app/uploads
+
+# Cartella dei documenti dei pazienti (in docker-compose è un volume).
+RUN mkdir -p /app/uploads && chown node:node /app/uploads
 
 COPY --from=build --chown=node:node /app/.next/standalone ./
 COPY --from=build --chown=node:node /app/.next/static ./.next/static
