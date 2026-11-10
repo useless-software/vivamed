@@ -43,6 +43,7 @@ Lavoriamo costantemente per arricchire vivamed. Ecco cosa abbiamo in programma:
 - [ ] 📬 **Mailing List e Newsletter:** Editor visivo WYSIWYG integrato per creare e inviare mail via SMTP/IMAP o tramite Brevo.
 - [ ] ☁️ **S3 Storage Integrato:** Salvataggio sicuro in cloud di dati sensibili, referti e schede mediche.
 - [ ] 🔌 **REST API per App Paziente:** API dedicate per integrare vivamed con app mobile terze o portali paziente.
+- [ ] 🔒 **2FA e predisposizione per Internet** Autenticazione a 2 fattori sicura, e altri dettagli di sicurezza per permettere a vivamed di eseguire tranquillamente in una VPS senza troppi pensieri.
 
 ---
 
