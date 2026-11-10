@@ -9,12 +9,15 @@ import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Field, FormError, NativeSelect, SubmitButton } from "@/components/form";
+import { StatusToggle } from "@/components/status-toggle";
 import { useFormAction } from "@/components/use-form-action";
+import { doctorLabel } from "@/lib/doctors";
 import { t } from "@/lib/messages";
 import { canWriteAppointment, type Role } from "@/lib/permissions";
 import { saveAppointment, setAppointmentStatus } from "@/server/actions/appointments";
 import { PatientPicker } from "./patient-picker";
-import type { DoctorOption, PatientRef, RoomOption, Status } from "./types";
+import { QuickPatientDialog } from "./quick-patient-dialog";
+import type { DoctorOption, Outcome, PatientRef, RoomOption, Status } from "./types";
 
 /** Cosa sta mostrando la finestra: un appuntamento nuovo (bozza) o uno esistente. */
 export type AppointmentDraft = {
@@ -26,6 +29,7 @@ export type AppointmentDraft = {
   patient: PatientRef | null;
   reason?: string | null;
   status?: Status;
+  outcome?: Outcome | null;
 };
 
 type Props = {
@@ -39,7 +43,7 @@ type Props = {
 export function AppointmentDialog({ draft, onClose, ...rest }: Props) {
   return (
     <Dialog open={draft !== null} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="sm:max-w-lg">
+      <DialogContent className="max-h-[92dvh] overflow-y-auto sm:max-w-lg">
         <DialogHeader>
           <DialogTitle>{draft?.id ? t.agenda.edit : t.agenda.new}</DialogTitle>
         </DialogHeader>
@@ -72,7 +76,25 @@ function AppointmentForm({ draft, doctors, rooms, user, onClose }: Props & { dra
   const editable = isNew || canWriteAppointment(user, draft.doctorId ?? "");
   const ownOnly = !canWriteAppointment(user, "");
 
+  // In modifica restano selezionabili anche il medico e la sala attuali, se nel frattempo disattivati.
+  const roomOptions = rooms.filter((room) => room.active || room.id === draft.roomId);
+  const allowedDoctors = doctors.filter(
+    (doctor) => (doctor.active || doctor.id === draft.doctorId) && (!ownOnly || doctor.id === user.id || !isNew),
+  );
+
   const [patient, setPatient] = useState(draft.patient);
+  const [quickQuery, setQuickQuery] = useState<string | null>(null);
+  const [roomId, setRoomId] = useState(draft.roomId ?? roomOptions[0]?.id ?? "");
+  const [doctorId, setDoctorId] = useState(() => {
+    if (draft.doctorId) return draft.doctorId;
+    if (ownOnly) return user.id;
+    // Appuntamento nuovo: si parte dal primo medico della sala, se ne ha.
+    const roomDoctor = roomOptions
+      .find((room) => room.id === (draft.roomId ?? roomOptions[0]?.id))
+      ?.doctors.find((doctor) => allowedDoctors.some((option) => option.id === doctor.id));
+    return roomDoctor?.id ?? allowedDoctors[0]?.id ?? "";
+  });
+  const [status, setStatus] = useState<Status>(draft.status ?? "PENDING");
   const [date, setDate] = useState(format(draft.start, "yyyy-MM-dd"));
   const [start, setStart] = useState(format(draft.start, "HH:mm"));
   const [end, setEnd] = useState(format(draft.end, "HH:mm"));
@@ -100,14 +122,23 @@ function AppointmentForm({ draft, doctors, rooms, user, onClose }: Props & { dra
     },
   });
 
-  // In modifica restano selezionabili anche il medico e la sala attuali, se nel frattempo disattivati.
-  const doctorOptions = doctors.filter(
-    (doctor) => (doctor.active || doctor.id === draft.doctorId) && (!ownOnly || doctor.id === user.id || !isNew),
-  );
-  const roomOptions = rooms.filter((room) => room.active || room.id === draft.roomId);
-  const defaultDoctor = draft.doctorId ?? (ownOnly ? user.id : doctorOptions[0]?.id);
+  // I medici della sala scelta vengono proposti per primi.
+  const roomDoctorIds = new Set(rooms.find((room) => room.id === roomId)?.doctors.map((doctor) => doctor.id));
+  const inRoom = allowedDoctors.filter((doctor) => roomDoctorIds.has(doctor.id));
+  const others = allowedDoctors.filter((doctor) => !roomDoctorIds.has(doctor.id));
 
-  if (isNew && (doctorOptions.length === 0 || roomOptions.length === 0)) {
+  function changeRoom(next: string) {
+    setRoomId(next);
+    if (!isNew || ownOnly) return;
+    const nextDoctors = rooms.find((room) => room.id === next)?.doctors ?? [];
+    // Se il medico scelto non lavora in quella sala, si passa al primo che ci lavora.
+    if (nextDoctors.length > 0 && !nextDoctors.some((doctor) => doctor.id === doctorId)) {
+      const first = allowedDoctors.find((doctor) => nextDoctors.some((d) => d.id === doctor.id));
+      if (first) setDoctorId(first.id);
+    }
+  }
+
+  if (isNew && (allowedDoctors.length === 0 || roomOptions.length === 0)) {
     return <p className="text-sm text-muted-foreground">{t.agenda.needRoomAndDoctor}</p>;
   }
 
@@ -123,34 +154,61 @@ function AppointmentForm({ draft, doctors, rooms, user, onClose }: Props & { dra
     });
   }
 
+  const doctorOption = (doctor: DoctorOption) => (
+    <option key={doctor.id} value={doctor.id}>
+      {doctorLabel(doctor.title, doctor.name)}
+    </option>
+  );
+
   return (
     <form onSubmit={onSubmit} className="grid grid-cols-2 gap-4">
       {draft.id ? <input type="hidden" name="id" value={draft.id} /> : null}
       <fieldset disabled={!editable} className="contents">
         <Field label={t.agenda.patient} htmlFor="appointment-patient" className="col-span-2">
-          <PatientPicker id="appointment-patient" value={patient} onChange={setPatient} disabled={!editable} />
+          <PatientPicker
+            id="appointment-patient"
+            value={patient}
+            onChange={setPatient}
+            onCreateNew={editable ? setQuickQuery : undefined}
+            disabled={!editable}
+          />
           {patient ? (
             <Link href={`/pazienti/${patient.id}`} className="text-xs text-primary hover:underline">
               {t.patients.data} →
             </Link>
           ) : null}
         </Field>
-        <Field label={t.agenda.doctor} htmlFor="appointment-doctor" errors={errors.doctorId}>
-          <NativeSelect id="appointment-doctor" name="doctorId" defaultValue={defaultDoctor} required>
-            {doctorOptions.map((doctor) => (
-              <option key={doctor.id} value={doctor.id}>
-                {doctor.name}
-              </option>
-            ))}
-          </NativeSelect>
-        </Field>
         <Field label={t.agenda.room} htmlFor="appointment-room" errors={errors.roomId}>
-          <NativeSelect id="appointment-room" name="roomId" defaultValue={draft.roomId ?? roomOptions[0]?.id} required>
+          <NativeSelect
+            id="appointment-room"
+            name="roomId"
+            value={roomId}
+            onChange={(event) => changeRoom(event.target.value)}
+            required
+          >
             {roomOptions.map((room) => (
               <option key={room.id} value={room.id}>
                 {room.name}
               </option>
             ))}
+          </NativeSelect>
+        </Field>
+        <Field label={t.agenda.doctor} htmlFor="appointment-doctor" errors={errors.doctorId}>
+          <NativeSelect
+            id="appointment-doctor"
+            name="doctorId"
+            value={doctorId}
+            onChange={(event) => setDoctorId(event.target.value)}
+            required
+          >
+            {inRoom.length > 0 ? (
+              <>
+                <optgroup label={t.agenda.roomDoctors}>{inRoom.map(doctorOption)}</optgroup>
+                {others.length > 0 ? <optgroup label={t.agenda.otherDoctors}>{others.map(doctorOption)}</optgroup> : null}
+              </>
+            ) : (
+              others.map(doctorOption)
+            )}
           </NativeSelect>
         </Field>
         <Field label={t.agenda.date} htmlFor="appointment-date" className="col-span-2">
@@ -187,6 +245,19 @@ function AppointmentForm({ draft, doctors, rooms, user, onClose }: Props & { dra
             required
           />
         </Field>
+        <div className="col-span-2 flex flex-col gap-1.5">
+          <span className="text-sm font-medium">{t.agenda.status}</span>
+          <StatusToggle name="status" value={status} onChange={setStatus} disabled={!editable} />
+        </div>
+        {isNew ? null : (
+          <Field label={t.agenda.outcome} htmlFor="appointment-outcome" className="col-span-2">
+            <NativeSelect id="appointment-outcome" name="outcome" defaultValue={draft.outcome ?? ""}>
+              <option value="">{t.outcome.NONE}</option>
+              <option value="COMPLETED">{t.outcome.COMPLETED}</option>
+              <option value="NO_SHOW">{t.outcome.NO_SHOW}</option>
+            </NativeSelect>
+          </Field>
+        )}
         <Field
           label={t.agenda.reason}
           htmlFor="appointment-reason"
@@ -195,17 +266,6 @@ function AppointmentForm({ draft, doctors, rooms, user, onClose }: Props & { dra
         >
           <Textarea id="appointment-reason" name="reason" defaultValue={draft.reason ?? ""} rows={2} />
         </Field>
-        {isNew ? null : (
-          <Field label={t.agenda.status} htmlFor="appointment-status" className="col-span-2">
-            <NativeSelect id="appointment-status" name="status" defaultValue={draft.status}>
-              {(Object.keys(t.status) as Status[]).map((status) => (
-                <option key={status} value={status}>
-                  {t.status[status]}
-                </option>
-              ))}
-            </NativeSelect>
-          </Field>
-        )}
       </fieldset>
       <div className="col-span-2 flex flex-col gap-3">
         {editable ? null : <p className="text-sm text-muted-foreground">{t.agenda.readOnly}</p>}
@@ -228,6 +288,15 @@ function AppointmentForm({ draft, doctors, rooms, user, onClose }: Props & { dra
           {editable ? <SubmitButton pending={pending}>{t.common.save}</SubmitButton> : null}
         </DialogFooter>
       </div>
+      <QuickPatientDialog
+        query={quickQuery}
+        onClose={() => setQuickQuery(null)}
+        onCreated={(created) => {
+          setPatient(created);
+          setClientError(undefined);
+          setQuickQuery(null);
+        }}
+      />
     </form>
   );
 }

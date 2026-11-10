@@ -128,3 +128,15 @@
     @apply font-sans;
   }
 }
+/* Stampa: margini del foglio e niente sfondi o elementi dell'interfaccia. */
+@media print {
+  @page {
+    margin: 12mm;
+  }
+  body {
+    background: white !important;
+  }
+  [data-sonner-toaster] {
+    display: none !important;
+  }
+}

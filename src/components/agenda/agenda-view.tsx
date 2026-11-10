@@ -1,18 +1,20 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useCallback, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Calendar, dateFnsLocalizer, type SlotInfo } from "react-big-calendar";
 import withDragAndDrop, { type EventInteractionArgs } from "react-big-calendar/lib/addons/dragAndDrop";
 import { addDays, endOfWeek, format, getDay, parse, startOfWeek } from "date-fns";
 import { it } from "date-fns/locale";
-import { ChevronLeftIcon, ChevronRightIcon, PlusIcon } from "lucide-react";
+import { ChevronLeftIcon, ChevronRightIcon, PlusIcon, PrinterIcon } from "lucide-react";
 import { toast } from "sonner";
 import "react-big-calendar/lib/css/react-big-calendar.css";
 import "react-big-calendar/lib/addons/dragAndDrop/styles.css";
 import "./agenda.css";
-import { Button } from "@/components/ui/button";
+import { Button, buttonVariants } from "@/components/ui/button";
 import { Checkbox, NativeSelect } from "@/components/form";
+import { StatusIcon } from "@/components/status-style";
+import { doctorLabel } from "@/lib/doctors";
 import { t } from "@/lib/messages";
 import { canWriteAppointment } from "@/lib/permissions";
 import { moveAppointment } from "@/server/actions/appointments";
@@ -68,6 +70,13 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
 
   const roomById = useMemo(() => new Map(rooms.map((room) => [room.id, room])), [rooms]);
   const doctorById = useMemo(() => new Map(doctors.map((doctor) => [doctor.id, doctor])), [doctors]);
+  const doctorName = useCallback(
+    (id: string) => {
+      const doctor = doctorById.get(id);
+      return doctor ? doctorLabel(doctor.title, doctor.name) : "";
+    },
+    [doctorById],
+  );
   // Le colonne per sala/medico hanno senso solo nella vista giornaliera.
   const grouping: AgendaGroup = view === "day" ? group : "none";
 
@@ -79,7 +88,7 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
           const move = moves[event.id];
           return {
             id: event.id,
-            title: `${event.patient.label} · ${doctorById.get(event.doctorId)?.name ?? ""}`,
+            title: `${event.patient.label} · ${doctorName(event.doctorId)}`,
             start: move?.start ?? new Date(event.startsAt),
             end: move?.end ?? new Date(event.endsAt),
             resourceId:
@@ -88,7 +97,7 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
             source: event,
           };
         }),
-    [events, moves, showCancelled, grouping, doctorById],
+    [events, moves, showCancelled, grouping, doctorName],
   );
 
   const resources = useMemo<Resource[] | undefined>(() => {
@@ -99,8 +108,8 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
     return all
       .filter((item) => item.active || used.has(item.id))
       .filter((item) => selected === "tutti" || selected === "tutte" || item.id === selected)
-      .map((item) => ({ id: item.id, title: item.name }));
-  }, [grouping, events, rooms, doctors, filters]);
+      .map((item) => ({ id: item.id, title: grouping === "doctor" ? doctorName(item.id) : item.name }));
+  }, [grouping, events, rooms, doctors, filters, doctorName]);
 
   function navigate(changes: Record<string, string | null>, mode: "push" | "replace" = "push") {
     const params = new URLSearchParams();
@@ -158,6 +167,7 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
       patient: source.patient,
       reason: source.reason,
       status: source.status,
+      outcome: source.outcome,
     });
   }
 
@@ -201,6 +211,14 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
           <ChevronRightIcon />
         </Button>
         <h1 className="mr-auto px-1 text-lg font-semibold first-letter:uppercase">{label}</h1>
+        <a
+          href={`/agenda/stampa?data=${format(current, "yyyy-MM-dd")}${filters.doctor !== "tutti" ? `&medico=${filters.doctor}` : ""}`}
+          target="_blank"
+          rel="noopener"
+          className={buttonVariants({ variant: "outline" })}
+        >
+          <PrinterIcon /> {t.agenda.print}
+        </a>
         <Button onClick={() => openNew()}>
           <PlusIcon /> {t.agenda.new}
         </Button>
@@ -229,7 +247,7 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
           <option value="tutti">{t.agenda.allDoctors}</option>
           {doctors.map((doctor) => (
             <option key={doctor.id} value={doctor.id}>
-              {doctor.name}
+              {doctorLabel(doctor.title, doctor.name)}
             </option>
           ))}
         </NativeSelect>
@@ -305,7 +323,7 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
           eventPropGetter={(event) => {
             const color = roomById.get(event.source.roomId)?.color ?? "#3b82f6";
             return {
-              className: `agenda-event agenda-event-${event.source.status.toLowerCase()}`,
+              className: `agenda-event agenda-event-${event.source.status.toLowerCase()}${event.source.outcome ? ` agenda-event-${event.source.outcome.toLowerCase()}` : ""}`,
               style: { backgroundColor: color, borderColor: color, color: readableText(color) },
             };
           }}
@@ -330,8 +348,14 @@ export function AgendaView({ events, doctors, rooms, user, filters, date, view, 
 /** Contenuto del riquadro: orario e paziente sulla stessa riga, leggibili anche negli appuntamenti brevi. */
 function EventLabel({ event }: { event: CalendarEvent }) {
   return (
-    <span>
-      <span className="tabular-nums opacity-80">{format(event.start, "HH:mm")}</span> {event.title}
+    <span className="flex items-start gap-1">
+      {/* Pastiglia bianca: l'icona di stato resta leggibile su qualunque colore di sala. */}
+      <span className="mt-px flex size-4 shrink-0 items-center justify-center rounded-full bg-white/95 shadow-sm">
+        <StatusIcon status={event.source.status} className="size-3" />
+      </span>
+      <span>
+        <span className="tabular-nums opacity-80">{format(event.start, "HH:mm")}</span> {event.title}
+      </span>
     </span>
   );
 }

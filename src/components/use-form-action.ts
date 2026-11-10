@@ -18,12 +18,15 @@ export function useFormAction(
   options: {
     successMessage?: string;
     onSuccess?: () => void;
+    /** Riceve la risposta completa della Server Action (anche in caso di errore). */
+    onResult?: (result: ActionState) => void;
     /** Ultimo ritocco ai dati prima dell'invio; restituisce false per annullare. */
     prepare?: (formData: FormData) => boolean | void;
   } = {},
 ) {
   const [state, dispatch, pending] = useActionState(async (prev: ActionState, formData: FormData) => {
     const result = await action(prev, formData);
+    options.onResult?.(result);
     if (result.ok) {
       if (options.successMessage) toast.success(options.successMessage);
       options.onSuccess?.();
@@ -33,6 +36,9 @@ export function useFormAction(
 
   function onSubmit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
+    // Un form dentro un popup aperto da un altro form (es. nuovo paziente dal form
+    // appuntamento): in React l'evento risalirebbe fino al form esterno.
+    event.stopPropagation();
     const formData = new FormData(event.currentTarget);
     if (options.prepare?.(formData) === false) return;
     startTransition(() => dispatch(formData));

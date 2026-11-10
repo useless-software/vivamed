@@ -3,6 +3,7 @@ import type { Role } from "@/lib/permissions";
 import type { t } from "@/lib/messages";
 
 export type Status = keyof typeof t.status;
+export type Outcome = "COMPLETED" | "NO_SHOW";
 export type PatientRef = { id: string; label: string };
 
 /** Appuntamento così come viaggia dal server al calendario (date in ISO). */
@@ -11,6 +12,7 @@ export type AgendaEvent = {
   startsAt: string;
   endsAt: string;
   status: Status;
+  outcome: Outcome | null;
   reason: string | null;
   doctorId: string;
   roomId: string;

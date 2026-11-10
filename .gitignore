@@ -45,3 +45,6 @@ next-env.d.ts
 
 # client Prisma generato (npx prisma generate)
 /src/generated/prisma
+
+# documenti caricati in sviluppo
+/uploads

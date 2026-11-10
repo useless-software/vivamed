@@ -12,7 +12,9 @@ import { requirePermission } from "@/lib/auth";
 import { db } from "@/lib/db";
 import { formatDateOnly } from "@/lib/format";
 import { t } from "@/lib/messages";
-import { patientSearchWhere } from "@/lib/patient-search";
+import { NativeSelect } from "@/components/form";
+import { formatDateTime } from "@/lib/format";
+import { parsePatientSort, patientOrderBy, patientSearchWhere, PATIENT_SORTS } from "@/lib/patient-search";
 
 export const metadata: Metadata = { title: t.patients.title };
 
@@ -30,6 +32,7 @@ async function PatientsContent({ searchParams }: Pick<PageProps<"/pazienti">, "s
   await requirePermission("patients.read");
   const params = await searchParams;
   const query = typeof params.q === "string" ? params.q.slice(0, 100) : "";
+  const sort = parsePatientSort(params.ordine);
   const requestedPage = Math.max(1, Number.parseInt(String(params.pagina ?? "1"), 10) || 1);
 
   const where = patientSearchWhere(query);
@@ -38,15 +41,25 @@ async function PatientsContent({ searchParams }: Pick<PageProps<"/pazienti">, "s
   const page = Math.min(requestedPage, pages);
   const patients = await db.patient.findMany({
     where,
-    orderBy: [{ lastName: "asc" }, { firstName: "asc" }, { id: "asc" }],
+    orderBy: patientOrderBy(sort),
     skip: (page - 1) * PAGE_SIZE,
     take: PAGE_SIZE,
-    select: { id: true, firstName: true, lastName: true, fiscalCode: true, birthDate: true, phone: true },
+    select: {
+      id: true,
+      firstName: true,
+      lastName: true,
+      fiscalCode: true,
+      birthDate: true,
+      phone: true,
+      email: true,
+      createdAt: true,
+    },
   });
 
   const pageHref = (target: number) => {
     const search = new URLSearchParams();
     if (query) search.set("q", query);
+    if (sort !== "cognome") search.set("ordine", sort);
     if (target > 1) search.set("pagina", String(target));
     const text = search.toString();
     return text ? `/pazienti?${text}` : "/pazienti";
@@ -60,14 +73,22 @@ async function PatientsContent({ searchParams }: Pick<PageProps<"/pazienti">, "s
         </Link>
       </PageHeader>
 
-      <Form action="/pazienti" className="mb-4 flex max-w-xl gap-2">
+      <Form action="/pazienti" className="mb-4 flex flex-wrap gap-2">
         <Input
+          className="max-w-xl min-w-60 flex-1"
           name="q"
           type="search"
           defaultValue={query}
           placeholder={t.patients.searchPlaceholder}
           aria-label={t.common.search}
         />
+        <NativeSelect name="ordine" defaultValue={sort} autoSubmit aria-label={t.patients.sort} className="w-auto">
+          {PATIENT_SORTS.map((value) => (
+            <option key={value} value={value}>
+              {t.patients.sortOptions[value]}
+            </option>
+          ))}
+        </NativeSelect>
         <Button type="submit" variant="outline">
           <SearchIcon /> {t.common.search}
         </Button>
@@ -88,6 +109,8 @@ async function PatientsContent({ searchParams }: Pick<PageProps<"/pazienti">, "s
                   <TableHead>{t.patients.fiscalCode}</TableHead>
                   <TableHead>{t.patients.birthDate}</TableHead>
                   <TableHead>{t.patients.phone}</TableHead>
+                  <TableHead>{t.patients.email}</TableHead>
+                  <TableHead>{t.patients.addedOn}</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -102,6 +125,8 @@ async function PatientsContent({ searchParams }: Pick<PageProps<"/pazienti">, "s
                     <TableCell className="font-mono text-xs">{patient.fiscalCode}</TableCell>
                     <TableCell>{formatDateOnly(patient.birthDate)}</TableCell>
                     <TableCell>{patient.phone}</TableCell>
+                    <TableCell>{patient.email}</TableCell>
+                    <TableCell className="text-muted-foreground">{formatDateTime(patient.createdAt)}</TableCell>
                   </TableRow>
                 ))}
               </TableBody>

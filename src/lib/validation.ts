@@ -184,6 +184,8 @@ export type ActionState = {
   ok?: boolean;
   error?: string;
   fieldErrors?: FieldErrors;
+  /** Elemento appena creato, per chi deve selezionarlo subito (es. nuovo paziente dal form appuntamento). */
+  created?: { id: string; label: string };
 };
 
 export function invalid(error: z.ZodError): ActionState {

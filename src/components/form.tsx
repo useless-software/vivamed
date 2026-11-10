@@ -59,9 +59,17 @@ export function SubmitButton({
 }
 
 /** <select> nativo con lo stesso aspetto degli Input: funziona con FormData senza JavaScript extra. */
-export function NativeSelect({ className, ...props }: ComponentProps<"select">) {
+export function NativeSelect({
+  className,
+  autoSubmit,
+  ...props
+}: ComponentProps<"select"> & {
+  /** Invia il form appena cambia il valore (utile per ordinamenti e filtri). */
+  autoSubmit?: boolean;
+}) {
   return (
     <select
+      onChange={autoSubmit ? (event) => event.currentTarget.form?.requestSubmit() : undefined}
       className={cn(
         "h-8 w-full rounded-lg border border-input bg-background px-2.5 text-sm outline-none transition-colors focus-visible:border-ring focus-visible:ring-3 focus-visible:ring-ring/50 disabled:opacity-50",
         className,
