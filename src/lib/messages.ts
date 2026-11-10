@@ -92,6 +92,12 @@ export const t = {
     timeOrder: "L'orario di fine deve essere successivo a quello di inizio.",
     tooLong: "L'appuntamento non può durare più di 12 ore.",
     roomBusy: "La sala è già occupata in questo orario.",
+    stopTooLong: "Uno stop non può durare più di 24 ore.",
+    stopBlocks: (note: string) => `In questo orario c'è uno stop: «${note}».`,
+    stopOverAppointments: (n: number) =>
+      n === 1
+        ? "In questo orario c'è già 1 appuntamento: spostalo o disdicilo prima di creare lo stop."
+        : `In questo orario ci sono già ${n} appuntamenti: spostali o disdicili prima di creare lo stop.`,
     doctorBusy: "Il medico ha già un appuntamento in questo orario.",
     slotBusy: "L'orario si sovrappone a un altro appuntamento.",
     doctorInvalid: "Il medico selezionato non è valido o non è attivo.",
@@ -195,6 +201,21 @@ export const t = {
     page: (page: number, pages: number) => `Pagina ${page} di ${pages}`,
     book: "Prenota appuntamento",
   },
+  stops: {
+    create: "Crea stop",
+    new: "Nuovo stop",
+    edit: "Stop",
+    note: "Commento",
+    notePlaceholder: "Es. Pausa pranzo, sala in pulizia, riunione…",
+    doctors: "Medici coinvolti",
+    doctorsHint: "Per loro l'orario non sarà prenotabile, in qualunque sala.",
+    created: "Stop creato",
+    deleted: "Stop eliminato",
+    delete: "Elimina stop",
+    deleteConfirm: "Eliminare questo stop?",
+    label: "Stop",
+    printLabel: "STOP",
+  },
   print: {
     title: "Stampa agenda",
     print: "Stampa",
@@ -202,6 +223,7 @@ export const t = {
     empty: "Nessun appuntamento in questa giornata.",
     time: "Orario",
     duration: "Durata",
+    reason: "Motivo della visita",
   },
   documents: {
     title: "Documenti",

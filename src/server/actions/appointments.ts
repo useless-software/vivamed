@@ -78,6 +78,17 @@ async function persist(
     if (clash) {
       return { error: clash.roomId === data.roomId ? t.errors.roomBusy : t.errors.doctorBusy };
     }
+
+    // Uno stop rende la sala (e i suoi medici) non prenotabili.
+    const stop = await db.agendaStop.findFirst({
+      where: {
+        startsAt: { lt: data.endsAt },
+        endsAt: { gt: data.startsAt },
+        OR: [{ roomId: data.roomId }, { doctors: { some: { id: data.doctorId } } }],
+      },
+      select: { note: true },
+    });
+    if (stop) return { error: t.errors.stopBlocks(stop.note) };
   }
 
   try {

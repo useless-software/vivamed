@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  stopSchema,
   appointmentSchema,
   createUserSchema,
   patientSchema,
@@ -135,5 +136,26 @@ describe("utenti e sale", () => {
   it("il colore della sala deve essere esadecimale", () => {
     expect(roomSchema.safeParse({ name: "Sala 1", color: "#10b981", active: "on" }).success).toBe(true);
     expect(roomSchema.safeParse({ name: "Sala 1", color: "rosso" }).success).toBe(false);
+  });
+});
+
+describe("stop in agenda", () => {
+  const base = {
+    note: " Pausa pranzo ",
+    roomId: "r",
+    startsAt: "2026-02-03T12:00:00.000Z",
+    endsAt: "2026-02-03T13:00:00.000Z",
+  };
+
+  it("richiede un commento e accetta zero o più medici", () => {
+    expect(stopSchema.parse(base)).toMatchObject({ note: "Pausa pranzo", doctorIds: [] });
+    expect(stopSchema.parse({ ...base, doctorIds: ["a", "b"] }).doctorIds).toEqual(["a", "b"]);
+    expect(stopSchema.safeParse({ ...base, note: "  " }).success).toBe(false);
+  });
+
+  it("può durare una giornata intera ma non più di 24 ore", () => {
+    expect(stopSchema.safeParse({ ...base, endsAt: "2026-02-04T12:00:00.000Z" }).success).toBe(true);
+    expect(stopSchema.safeParse({ ...base, endsAt: "2026-02-04T12:30:00.000Z" }).success).toBe(false);
+    expect(stopSchema.safeParse({ ...base, endsAt: base.startsAt }).success).toBe(false);
   });
 });

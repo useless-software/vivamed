@@ -55,6 +55,8 @@ model User {
   sessions            Session[]
   documents           PatientDocument[]
   rooms               Room[]            @relation("RoomDoctors")
+  stops               AgendaStop[]      @relation("StopDoctors")
+  createdStops        AgendaStop[]      @relation("StopCreatedBy")
   doctorAppointments  Appointment[]     @relation("AppointmentDoctor")
   createdAppointments Appointment[]     @relation("AppointmentCreatedBy")
 }
@@ -83,6 +85,7 @@ model Room {
   appointments Appointment[]
   /// Medici che lavorano abitualmente in questa sala (suggeriti nel form appuntamento).
   doctors      User[]        @relation("RoomDoctors")
+  stops        AgendaStop[]
 }
 
 model Patient {
@@ -163,4 +166,24 @@ model PatientDocument {
   uploadedBy User?   @relation(fields: [uploadedById], references: [id], onDelete: SetNull)
 
   @@index([patientId, createdAt])
+}
+
+/// "Stop" in agenda: un blocco con solo un commento (es. pausa pranzo, sala chiusa)
+/// che rende la sala e i suoi medici non prenotabili in quell'orario.
+model AgendaStop {
+  id          String   @id @default(cuid())
+  roomId      String
+  startsAt    DateTime @db.Timestamptz(3)
+  endsAt      DateTime @db.Timestamptz(3)
+  note        String
+  createdById String?
+  createdAt   DateTime @default(now()) @db.Timestamptz(3)
+  updatedAt   DateTime @updatedAt @db.Timestamptz(3)
+
+  room      Room   @relation(fields: [roomId], references: [id], onDelete: Cascade)
+  doctors   User[] @relation("StopDoctors")
+  createdBy User?  @relation("StopCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+
+  @@index([roomId, startsAt])
+  @@index([startsAt])
 }
